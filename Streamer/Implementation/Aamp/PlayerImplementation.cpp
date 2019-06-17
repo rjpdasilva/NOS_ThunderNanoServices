@@ -1,187 +1,207 @@
-
 #include "PlayerImplementation.h"
 #include <gst/gst.h>
-#include <gst/video/videooverlay.h>
+#include <main_aamp.h>
 
 namespace WPEFramework {
-
-ENUM_CONVERSION_BEGIN(Exchange::IStream::state)
-
-    { Exchange::IStream::state::Paused, _TXT("Paused") },
-    { Exchange::IStream::state::Playing, _TXT("Playing") },
-    { Exchange::IStream::state::Idle, _TXT("Idle") },
-
-    ENUM_CONVERSION_END(Exchange::IStream::state);
 
 namespace Player {
 
     namespace Implementation {
-        class GstWrapper {
+
+        class AampEventListener :public AAMPEventListener {
         private:
-            GstWrapper(const GstWrapper&) = delete;
-            GstWrapper& operator=(const GstWrapper&) = delete;
+            AampEventListener() = delete;
+            AampEventListener(const AampEventListener&) = delete;
+            AampEventListener& operator=(const AampEventListener&) = delete;
 
         public:
-            GstWrapper()
-            : _mainLoop(nullptr)
-            , _playbin(nullptr)
-            , _videoSink(nullptr)
-            {
-            }
-            virtual ~GstWrapper()
-            {
-                gst_object_unref(_playbin);
-                _playbin = nullptr;
-            }
-
-            bool SetRate(int rate, int& currentRate, uint64_t _absoluteTime, GstState state);
-            static gboolean HandleBusMessage(GstBus* bus, GstMessage* msg, void* arg);
-
-            uint64_t GetPosition(uint64_t absoluteTime) const {
-                gint64 duration;
-                if (!gst_element_query_duration(_playbin, GST_FORMAT_TIME, &duration)) {
-                    TRACE(Trace::Error, (_T("Unable to retrieve duration")));
-                }
-                return ((absoluteTime < static_cast<uint64_t>(duration)) ? absoluteTime : duration);
-            }
-            inline GMainLoop* MainLoop() const { return _mainLoop; }
-            inline void MainLoop(GMainLoop* mainLoop) { _mainLoop = mainLoop; }
-            inline GstElement* Playbin() const { return _playbin; }
-            inline void Playbin(GstElement* playbin) { _playbin = playbin; }
-            inline GstElement* VideoSink() const { return _videoSink; }
-            inline void VideoSink(GstElement* videoSink) { _videoSink = videoSink; }
-
+           AampEventListener(PlayerPlatform* player)
+           : _player(player)
+           {
+           }
+           void Event(const AAMPEvent & e)
+           {
+               switch (e.type)
+               {
+               case AAMP_EVENT_TUNED:
+                   TRACE(Trace::Information, (_T("AAMP_EVENT_TUNED")));
+                   break;
+               case AAMP_EVENT_TUNE_FAILED:
+                   _player->State(Exchange::IStream::Error);
+                   _player->Stop();
+                   TRACE(Trace::Information, (_T("AAMP_EVENT_TUNE_FAILED")));
+                   break;
+               case AAMP_EVENT_SPEED_CHANGED:
+                   TRACE(Trace::Information, (_T("AAMP_EVENT_SPEED_CHANGED")));
+                   break;
+               case AAMP_EVENT_DRM_METADATA:
+                   TRACE(Trace::Information, (_T("AAMP_DRM_FAILED")));
+                   break;
+               case AAMP_EVENT_EOS:
+                   _player->Position(0);
+                   _player->Speed(0);
+                   TRACE(Trace::Information, (_T("AAMP_EVENT_EOS")));
+                   break;
+               case AAMP_EVENT_PLAYLIST_INDEXED:
+                   TRACE(Trace::Information, (_T("AAMP_EVENT_PLAYLIST_INDEXED")));
+                   break;
+               case AAMP_EVENT_PROGRESS:
+                   break;
+               case AAMP_EVENT_CC_HANDLE_RECEIVED:
+                   TRACE(Trace::Information, (_T("AAMP_EVENT_CC_HANDLE_RECEIVED")));
+                   break;
+               case AAMP_EVENT_BITRATE_CHANGED:
+                   TRACE(Trace::Information, (_T("AAMP_EVENT_BITRATE_CHANGED")));
+                   break;
+               default:
+                   break;
+              }
+           }
         private:
-            GMainLoop* _mainLoop;
-            GstElement* _playbin;
-            GstElement* _videoSink;
+            PlayerPlatform* _player;
         };
 
-        bool GstWrapper::SetRate(int newRate, int& currentRate, uint64_t absoluteTime, GstState state)
-        {
-            bool status = false;
-            if (newRate != currentRate) {
-                if ((state == GST_STATE_PLAYING) || (state == GST_STATE_PAUSED)) {
-                    currentRate = newRate;
-                    gint64 cur = GST_CLOCK_TIME_NONE;
-                    if (!gst_element_query_position(_playbin, GST_FORMAT_TIME, &cur)) {
-                        TRACE(Trace::Error, (_T("Query position failed")));
-                    } else {
-                        uint64_t time = GetPosition((cur / GST_SECOND) + absoluteTime);
-                        gboolean ret = 0;
-                        if (newRate > 0) {
-                            ret = gst_element_seek(_playbin, newRate, GST_FORMAT_TIME, GST_SEEK_FLAG_FLUSH, GST_SEEK_TYPE_SET, time, GST_SEEK_TYPE_NONE, GST_CLOCK_TIME_NONE);
-                        } else {
-                            ret = gst_element_seek(_playbin, newRate, GST_FORMAT_TIME, GST_SEEK_FLAG_FLUSH, GST_SEEK_TYPE_NONE, GST_CLOCK_TIME_NONE, GST_SEEK_TYPE_SET, time);
-                        }
-                        if (!ret) {
-                            TRACE(Trace::Error, (_T("Seek failed")));
-                        } else {
-                            TRACE(Trace::Information, (_T("Seek Success")));
-                            status = true;
-                        }
-                    }
-                } else {
-                    TRACE(Trace::Error, (_T("Invalid player state")));
-                }
-            } else {
-                TRACE(Trace::Error, (_T("Ignoring rate, since it is already in the same")));
-                status = true;
-            }
-            return status;
-        }
+        class Config : public Core::JSON::Container {
+        private:
+            Config(const Config&) = delete;
+            Config& operator=(const Config&) = delete;
 
+        public:
+            Config()
+                : Core::JSON::Container()
+                , Speeds()
+                , WesterosSink(false)
+            {
+                Add(_T("speeds"), &Speeds);
+                Add(_T("westerossink"), &WesterosSink);
+            }
+            ~Config()
+            {
+            }
 
-        gboolean GstWrapper::HandleBusMessage(GstBus* bus, GstMessage* msg, void* arg)
-        {
-            GError* error;
-            gchar* info;
-            PlayerPlatform* player = (PlayerPlatform*)arg;
+        public:
+            Core::JSON::ArrayType<Core::JSON::DecSInt32> Speeds;
+            Core::JSON::Boolean WesterosSink;
+        };
 
-            switch (GST_MESSAGE_TYPE(msg)) {
-            case GST_MESSAGE_EOS: {
-                g_print("EOS\n");
-                break;
-            }
-            case GST_MESSAGE_ERROR: {
-                gst_message_parse_error(msg, &error, &info);
-                g_printerr("**PLAYBINTEST: Error received from element %s: %s\n", GST_OBJECT_NAME(msg->src), error->message);
-                g_printerr("**PLAYBINTEST: Debugging information: %s\n", info ? info : "none");
-                g_free(info);
-                g_main_loop_quit(player->GetGstWrapper()->MainLoop());
-                break;
-            }
-            case GST_MESSAGE_STATE_CHANGED: {
-                GstState old, now, pending;
-                gst_message_parse_state_changed(msg, &old, &now, &pending);
-                if (memcmp(GST_OBJECT_NAME(GST_MESSAGE_SRC(msg)), "playbin", 7) == 0) {
-                    GST_FIXME("**PLAYBINTEST: element %s state change : %s -> %s . pending state %s\n", GST_ELEMENT_NAME(GST_MESSAGE_SRC(msg)),
-                        gst_element_state_get_name(old), gst_element_state_get_name(now), gst_element_state_get_name(pending));
-                }
-                if (now == GST_STATE_PLAYING) {
-                    if ((memcmp(GST_OBJECT_NAME(GST_MESSAGE_SRC(msg)), "glimagesink", strlen("glimagesink")) == 0) || (memcmp(GST_OBJECT_NAME(GST_MESSAGE_SRC(msg)), "brcmvideosink", strlen("brcmvideosink")) == 0) || (memcmp(GST_OBJECT_NAME(GST_MESSAGE_SRC(msg)), "video-sink", strlen("video-sink") == 0))) {
-                        if (player->GetGstWrapper()->VideoSink() == nullptr) {
-                            GstElement* videoSink = GST_ELEMENT(GST_MESSAGE_SRC(msg));
-                            player->GetGstWrapper()->VideoSink(videoSink);
-                            gst_video_overlay_set_render_rectangle(GST_VIDEO_OVERLAY(videoSink), player->Window().X, player->Window().Y, player->Window().Width, player->Window().Height);
-                        }
-                    }
-                }
-                break;
-            }
-            case GST_MESSAGE_BUFFERING: {
-                gint percent;
-                gst_message_parse_buffering(msg, &percent);
-                g_print("**PLAYBINTEST: eBuffering %d\n", percent);
-                break;
-            }
-            case GST_MESSAGE_TAG:
-                break;
-            default:
-                g_print("Bus msg type: %s\n", gst_message_type_get_name(msg->type));
-                break;
-            }
-            return TRUE;
-        }
-
-
-        uint8_t PlayerPlatform::_instances = 0;
+        string PlayerPlatform::_configuration = "";
 
         PlayerPlatform::PlayerPlatform(const Exchange::IStream::streamtype type, const uint8_t index, ICallback* callbacks)
             : _uri("")
-            , _state(Exchange::IStream::Idle)
+            , _state(Exchange::IStream::Error)
             , _drmType(Exchange::IStream::Unknown)
             , _streamType(type)
-            , _speed(0)
-            , _rate(0)
-            , _absoluteTime(0)
+            , _speed(-1)
             , _begin(0)
             , _end(~0)
             , _z(0)
             , _rectangle()
-            , _gstWrapper(nullptr)
             , _callback(callbacks)
+            , _initialized(false)
+            , _aampEventListener(nullptr)
+            , _aampGstPlayerMainLoop(nullptr)
+            , _scheduler(this)
+            , _adminLock()
         {
-            _gstWrapper = new GstWrapper();
+            Config config;
+            config.FromString(_configuration);
 
-            CreateMediaPipeline();
+            if ((config.Speeds.IsSet() == true) && (config.Speeds.Length() != 0)) {
+                Core::JSON::ArrayType<Core::JSON::DecSInt32>::Iterator index(config.Speeds.Elements());
+                while (index.Next() == true) {
+                    _speeds.push_back(index.Current().Value());
+                }
+            }
+            else {
+                int32_t speeds[] = { 100, -100, 200, -200, 400, -400, 800, -800, 1600, -1600, 3200, -3200};
+                _speeds.assign(std::begin(speeds), std::end(speeds));
+            }
+            _rectangle.X = 0;
+            _rectangle.Y = 0;
+            _rectangle.Width = 1080;
+            _rectangle.Height = 720;
+
+            if (config.WesterosSink.Value() == true) {
+                Core::SystemInfo::SetEnvironment(_T("PLAYERSINKBIN_USE_WESTEROSSINK"), _T("true"));
+            }
+
+            gst_init(0, nullptr);
+
+            _aampPlayer = new PlayerInstanceAAMP();
+            ASSERT(_aampPlayer);
+
+            _aampEventListener = new AampEventListener(this);
+            _aampPlayer->RegisterEvents(_aampEventListener);
+
+            _state = Exchange::IStream::Idle;
         }
 
         PlayerPlatform::~PlayerPlatform()
         {
-            Terminate();
-            _instances--;
-            if (_gstWrapper) {
-                delete _gstWrapper;
-                _gstWrapper = nullptr;
+            _scheduler.Quit();
+            _speeds.clear();
+
+            delete _aampPlayer;
+            _aampPlayer = nullptr;
+
+            delete _aampEventListener;
+            _aampEventListener = nullptr;
+        }
+
+        void PlayerPlatform::InitializePlayerInstance()
+        {
+            _adminLock.Lock();
+            if (!_initialized) {
+                _initialized = true;
+                _aampGstPlayerMainLoop = g_main_loop_new(nullptr, false);
             }
+            _adminLock.Unlock();
+        }
+
+        void PlayerPlatform::DeinitializePlayerInstance()
+        {
+            _adminLock.Lock();
+            if (_initialized == true) {
+                if (_aampGstPlayerMainLoop)
+                    g_main_loop_quit(_aampGstPlayerMainLoop);
+                _initialized = false;
+            }
+            _adminLock.Unlock();
+        }
+
+        void PlayerPlatform::AttachDecoder(const uint8_t index)
+        {
+            InitializePlayerInstance();
+
+            Run();
+        }
+
+        void PlayerPlatform::DetachDecoder(const uint8_t index)
+        {
+            Terminate();
         }
 
         void PlayerPlatform::Window(const Rectangle& rectangle)
         {
+            _adminLock.Lock();
             _rectangle = rectangle;
-            if (GetGstWrapper()->VideoSink() != nullptr) {
-                gst_video_overlay_set_render_rectangle(GST_VIDEO_OVERLAY(GetGstWrapper()->VideoSink()), _rectangle.X, _rectangle.Y, _rectangle.Width, _rectangle.Height);
+            _aampPlayer->SetVideoRectangle(_rectangle.X, _rectangle.Y, _rectangle.Width, _rectangle.Height);
+            _adminLock.Unlock();
+        }
+
+        void PlayerPlatform::QueryDRMSystem()
+        {
+            string drm = _aampPlayer->GetCurrentDRM();
+            if (drm.empty() != true) {
+                if (!strcmp(drm.c_str(), "WideVine")) {
+                    _drmType = Exchange::IStream::Widevine;
+                } else if (!strcmp(drm.c_str(), "PlayReady")) {
+                    _drmType = Exchange::IStream::PlayReady;
+                } else {
+                    _drmType = Exchange::IStream::Unknown;
+                }
+            } else {
+                _drmType = Exchange::IStream::None;
             }
         }
 
@@ -191,162 +211,101 @@ namespace Player {
             TRACE(Trace::Information, (string(__FUNCTION__)));
             TRACE(Trace::Information, (_T("uri = %s"), uri.c_str()));
 
-            if (IsRunning() == true) {
-                g_main_loop_quit(GetGstWrapper()->MainLoop());
-            }
-            TRACE(Trace::Information, (_T("uri = %s"), uri.c_str()));
-            Block();
-            Wait(Thread::BLOCKED | Thread::STOPPED, Core::infinite);
-            if (Core::Thread::State() == Thread::BLOCKED) {
+            if (uri.empty() == false) {
                 TRACE(Trace::Information, (_T("uri = %s"), uri.c_str()));
+                string uriType = UriType(uri);
+                if ((uriType == "m3u8") || (uriType == "mpd")) {
+                    TRACE(Trace::Information, (_T("URI type is %s"), uriType.c_str()));
 
-                if (uri.empty() == false) {
-                    TRACE(Trace::Information, (_T("uri = %s"), uri.c_str()));
-                    string uriType = UriType(uri);
-                    if ((uriType == "m3u8") || (uriType == "mpd")) {
-                        TRACE(Trace::Information, (_T("URI type is %s"), uriType.c_str()));
-                        _uri = uri;
-                        _rate = 1.0; //Normal playback
-                        ChangeSrcType(_uri);
-                        TRACE(Trace::Information, (_T("URI = %s"), _uri.c_str()));
-                        Run();
-                    } else {
-                        result = Core::ERROR_INCORRECT_URL;
-                        _state = Exchange::IStream::state::Error;
-                        TRACE(Trace::Error, (_T("URI is not dash/hls")));
+                    _adminLock.Lock();
+                    _speed = -1;
+                    _drmType = Exchange::IStream::Unknown;
+
+                    _uri = uri;
+                    _aampPlayer->Tune(_uri.c_str());
+                    _aampPlayer->SetRate(0);
+
+                    // TODO: wait for aaamp tune event before setting this
+                    _state = Exchange::IStream::Prepared;
+                    if (_callback != nullptr) {
+                       _callback->StateChange(_state);
                     }
+                    _adminLock.Unlock();
                 } else {
                     result = Core::ERROR_INCORRECT_URL;
-                    TRACE(Trace::Error, (_T("URI is not provided")));
+                    _adminLock.Lock();
+                    _state = Exchange::IStream::Error;
+                    _adminLock.Unlock();
+                    TRACE(Trace::Error, (_T("URI is not dash/hls")));
                 }
+            } else {
+                result = Core::ERROR_INCORRECT_URL;
+                TRACE(Trace::Error, (_T("URI is not provided")));
             }
+
             return result;
         }
 
         uint64_t PlayerPlatform::Position() const
         {
-            gint64 cur = GST_CLOCK_TIME_NONE;
-            GstElement* playbin = GetGstWrapper()->Playbin();
-            if (!gst_element_query_position(playbin, GST_FORMAT_TIME, &cur)) {
-                TRACE(Trace::Error, (_T("Query position failed")));
-            } else {
-                TRACE(Trace::Information, (_T("Query position Success")));
-            }
-            return ((cur / GST_SECOND) + _absoluteTime);
+            uint64_t position = 0;
+            _adminLock.Lock();
+            position = (_aampPlayer->GetPlaybackPosition() * 1000);
+            _adminLock.Unlock();
+            return position;
         }
 
         void PlayerPlatform::Position(const uint64_t absoluteTime)
         {
-            uint64_t time = GetGstWrapper()->GetPosition(absoluteTime);
-            if (time) {
-                if (IsValidPipelineState() == true) {
-                    gint64 cur = GST_CLOCK_TIME_NONE;
-                    if (!gst_element_query_position(GetGstWrapper()->Playbin(), GST_FORMAT_TIME, &cur)) {
-                        TRACE(Trace::Error, (_T("Query position failed")));
-                    } else {
-                        TRACE(Trace::Information, (_T("Query position Success")));
-                        if (time != ((cur / GST_SECOND) + _absoluteTime)) { //Avoid seek, if media already in the same position
-                            cur = GST_SECOND * time;
-                            if (!gst_element_seek(GetGstWrapper()->Playbin(), 1.0, GST_FORMAT_TIME, GST_SEEK_FLAG_FLUSH, GST_SEEK_TYPE_SET, cur, GST_SEEK_TYPE_NONE, GST_CLOCK_TIME_NONE)) {
-                                TRACE(Trace::Error, (_T("Seek failed")));
-                            } else {
-                                TRACE(Trace::Information, (_T("Seek Success")));
-                                _absoluteTime = time;
-                            }
-                        }
-                    }
-                }
+            _adminLock.Lock();
+            _aampPlayer->Seek(absoluteTime/1000);
+            _adminLock.Unlock();
+        }
+
+        void PlayerPlatform::TimeUpdate()
+        {
+            _adminLock.Lock();
+            if ((_callback != nullptr) && (_state == Exchange::IStream::Playing)) {
+                _callback->TimeUpdate(_aampPlayer->GetPlaybackPosition());
             }
+            _adminLock.Unlock();
+        }
+
+        void PlayerPlatform::Stop()
+        {
+            Speed(0);
+            _aampPlayer->Stop();
         }
 
         void PlayerPlatform::Terminate()
         {
-            if (IsRunning() == true) {
-                g_main_loop_quit(GetGstWrapper()->MainLoop());
-            }
+            _adminLock.Lock();
+            if (_initialized == true) {
+                _adminLock.Unlock();
 
-            TRACE(Trace::Information, (string(__FUNCTION__)));
-            Block();
-            Wait(Thread::BLOCKED | Thread::STOPPED, Core::infinite);
+                _scheduler.Block();
 
-            gst_element_set_state(GetGstWrapper()->Playbin(), GST_STATE_NULL);
-        }
+                _aampPlayer->Stop();
+                Block();
 
-        void PlayerPlatform::CreateMediaPipeline()
-        {
-            gst_init(nullptr, nullptr);
-            string playbinName = "playbin" + std::to_string(_instances);
+                DeinitializePlayerInstance();
 
-            GstElement* playbin = gst_element_factory_make("playbin", playbinName.c_str());
-            if (playbin) {
-                _instances++;
-#ifdef USE_WESTEROS
-                GstElement* vidsink = gst_element_factory_make("westerossink", NULL);
-                g_object_set(playbin, "video-sink", vidsink, NULL);
-#endif
-                GetGstWrapper()->Playbin(playbin);
-                _state = Exchange::IStream::state::Prepared;
+                TRACE(Trace::Information, (string(__FUNCTION__)));
+                Wait(Thread::BLOCKED | Thread::STOPPED, Core::infinite);
             } else {
-                TRACE(Trace::Error, (_T("Error in player creation")));
-                _state = Exchange::IStream::state::Error;
+                _adminLock.Unlock();
             }
-            if (_callback != nullptr) {
-                _callback->StateChange(_state);
-            }
-        }
-
-        bool PlayerPlatform::IsValidPipelineState()
-        {
-            GstState state;
-            GstState newState;
-            bool pipelineState = false;
-
-            GstStateChangeReturn stateResult = gst_element_get_state(GetGstWrapper()->Playbin(), &state, &newState, 0);
-            if (stateResult == GST_STATE_CHANGE_FAILURE || stateResult == GST_STATE_CHANGE_NO_PREROLL) {
-                TRACE(Trace::Error, (_T("Cannot seek, current state change is not valid: %s"), gst_element_state_change_return_get_name(stateResult)));
-            } else {
-                if ((stateResult == GST_STATE_CHANGE_ASYNC) || (state < GST_STATE_PAUSED)) {
-                    TRACE(Trace::Error, (_T("Invalid state: %s"), gst_element_state_change_return_get_name(stateResult)));
-                } else {
-                    pipelineState = true;
-                }
-            }
-            return pipelineState;
         }
 
         uint32_t PlayerPlatform::Worker()
         {
             TRACE(Trace::Information, (string(__FUNCTION__)));
-            g_object_set(GetGstWrapper()->Playbin(), "uri", _uri.c_str(), nullptr);
-
-            gint flags;
-            g_object_get(GetGstWrapper()->Playbin(), "flags", &flags, nullptr);
-            flags |= 0x03 | GST_PLAY_FLAG_VIDEO | GST_PLAY_FLAG_AUDIO | GST_PLAY_FLAG_NATIVE_AUDIO | GST_PLAY_FLAG_NATIVE_VIDEO;
-            g_object_set(GetGstWrapper()->Playbin(), "flags", flags, nullptr);
-
-            GstBus* bus = gst_element_get_bus(GetGstWrapper()->Playbin());
-            gst_bus_add_watch(bus, (GstBusFunc)GstWrapper::HandleBusMessage, this);
-
-            _state = Exchange::IStream::state::Paused;
-            if (_callback != nullptr) {
-                _callback->StateChange(_state);
+            if (_aampGstPlayerMainLoop) {
+                g_main_loop_run(_aampGstPlayerMainLoop); // blocks
+                TRACE(Trace::Information, (string(__FUNCTION__)));
+                g_main_loop_unref(_aampGstPlayerMainLoop);
+                _aampGstPlayerMainLoop = nullptr;
             }
-            TRACE(Trace::Information, (string(__FUNCTION__)));
-            GMainLoop* mainLoop = g_main_loop_new(NULL, FALSE);
-            GetGstWrapper()->MainLoop(mainLoop);
-            g_main_loop_run(mainLoop);
-
-            TRACE(Trace::Information, (string(__FUNCTION__)));
-            g_main_loop_unref(mainLoop);
-            gst_element_set_state(GetGstWrapper()->Playbin(), GST_STATE_NULL);
-            g_object_set(GetGstWrapper()->Playbin(), "uri", "", nullptr);
-            gst_object_unref(bus);
-
-            _speed = 0;
-            _rate = 1.0;
-            _absoluteTime = 0;
-            GetGstWrapper()->VideoSink(nullptr);
-            TRACE(Trace::Information, (string(__FUNCTION__)));
             return WPEFramework::Core::infinite;
         }
 
@@ -356,49 +315,39 @@ namespace Player {
             TRACE(Trace::Information, (_T("speed = %d"), speed));
             uint32_t result = Core::ERROR_NONE;
 
-            _speed = speed;
+            _adminLock.Lock();
+            if (speed != _speed) {
 
-            GstState gstState;
-            GstState pending;
+                Exchange::IStream::state newState = _state;
 
-            gst_element_get_state(GetGstWrapper()->Playbin(), &gstState, &pending, 0);
+                if (speed != 0) {
+                    SpeedList::iterator index =  std::find(_speeds.begin(), _speeds.end(), speed);
+                    if (index != _speeds.end()) {
+                        newState = Exchange::IStream::Playing;
+                        _scheduler.Run();
+                    } else {
+                        result = Core::ERROR_BAD_REQUEST;
+                    }
 
-            GstState newGstState;
-            Exchange::IStream::state newState;
-            if (speed != 0) {
-                int rate = 1;
-                if ((speed <= 4) && (speed >= -4)) { //limiting the rate to get a working version
-                    rate = speed;
-                    newGstState = gstState; //No state change is required
-                    newState = _state;
                 } else {
-                    newGstState = GST_STATE_PLAYING;
-                    newState = Exchange::IStream::state::Playing;
+
+                    newState = Exchange::IStream::Paused;
+                    _scheduler.Block();
                 }
-                if (GetGstWrapper()->SetRate(rate, _rate, _absoluteTime, gstState) != true) {
-                    newState = Exchange::IStream::state::Error;
-                }
-            } else {
-                newGstState = GST_STATE_PAUSED;
-                newState = Exchange::IStream::state::Paused;
-            }
-            if (newGstState != gstState) {
-                GstStateChangeReturn ret = gst_element_set_state(GetGstWrapper()->Playbin(), newGstState);
-                if (ret == GST_STATE_CHANGE_FAILURE) {
-                    TRACE(Trace::Error, (_T("Player state change to %s is failed"), Core::EnumerateType<Exchange::IStream::state>(newState).Data()));
-                    result = Core::ERROR_GENERAL;
-                    newState = Exchange::IStream::state::Error;
-                } else {
-                    TRACE(Trace::Information, (_T("Player successfully changed to %s"), Core::EnumerateType<Exchange::IStream::state>(newState).Data()));
+                _speed = speed;
+
+                _aampPlayer->SetRate((speed/100));
+                if (_state != newState) {
+                    _state = newState;
+                    if (_callback != nullptr) {
+                       _callback->StateChange(_state);
+                    }
                 }
             }
-            if (_state != newState) {
-                _state = newState;
-                if (_callback != nullptr) {
-                    _callback->StateChange(_state);
-                }
-            }
-        }
+
+            _adminLock.Unlock();
+            return result;
+       }
     }
 }
 } //namespace WPEFramework::Player::Implementation

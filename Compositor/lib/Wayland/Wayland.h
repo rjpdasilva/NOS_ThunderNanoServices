@@ -1,14 +1,15 @@
 #ifndef PROJECT_WAYLAND_H
 #define PROJECT_WAYLAND_H
 
-#include "../Client/Implementation.h"
 #include "Module.h"
+#include <compositor/Client.h>
+#include <compositorclient/Implementation.h>
 #include <interfaces/IComposition.h>
 
 #include <virtualinput/VirtualKeyboard.h>
 
 #ifdef ENABLE_NXSERVER
-#include "../NexusServer/NexusServer.h"
+#include "NexusServer/NexusServer.h"
 #endif
 
 extern "C" {

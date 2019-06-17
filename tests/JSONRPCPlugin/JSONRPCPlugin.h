@@ -181,6 +181,12 @@ namespace Plugin {
             TRACE(Trace::Information, (_T("A parameter less method that returns nothing was triggered")));
             return (Core::ERROR_NONE);
         }
+        uint32_t clueless2(const Core::JSON::String& inbound, Core::JSON::String& response)
+        {
+            TRACE(Trace::Information, (_T("Versioning, this is only on version 1")));
+            response = _T("CLUELESS RESPONSE: ") + inbound.Value();
+            return (Core::ERROR_NONE);
+        }       
 
         uint32_t input(const Core::JSON::String& info)
         {
@@ -228,7 +234,30 @@ namespace Plugin {
             _data = data.Value();
             return (Core::ERROR_NONE);
         }
-        uint32_t swap(const JsonObject& parameters, JsonObject& response)
+        uint32_t get_array_value(const string& id, Core::JSON::DecUInt32& data) const
+        {
+            uint8_t index = Core::NumberType<uint8_t>(id.c_str(), static_cast<uint32_t>(id.length())).Value();
+            data = _array[index];
+            return (Core::ERROR_NONE);
+        }
+        uint32_t set_array_value(const string& id, const Core::JSON::DecUInt32& data)
+        {
+            uint8_t index = Core::NumberType<uint8_t>(id.c_str(), static_cast<uint32_t>(id.length()));
+            _array[index] = data.Value();
+            return (Core::ERROR_NONE);
+        }
+        uint32_t get_status(Core::JSON::String& data) const
+		{
+			data.SetQuoted(true);
+			data = "Readonly value retrieved";
+			return (Core::ERROR_NONE);
+		}
+		uint32_t set_value(const Core::JSON::String& data)
+		{
+			_data = data.Value();
+			return (Core::ERROR_NONE);
+		}
+		uint32_t swap(const JsonObject& parameters, JsonObject& response)
         {
             response = JsonObject({ { "x", 111 }, { "y", 222 }, { "width", _window.Width }, { "height", _window.Height } });
 
@@ -358,6 +387,7 @@ namespace Plugin {
         Core::ProxyType<PeriodicSync> _job;
         Data::Window _window;
         string _data;
+        std::vector<uint32_t> _array;
         COMServer* _rpcServer;
     };
 

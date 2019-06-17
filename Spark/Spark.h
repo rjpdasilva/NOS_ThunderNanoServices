@@ -3,7 +3,7 @@
 #include "Module.h"
 #include <interfaces/IBrowser.h>
 #include <interfaces/IMemory.h>
-#include <interfaces/json/JsonData_Spark.h>
+#include <interfaces/json/JsonData_Browser.h>
 #include <interfaces/json/JsonData_StateControl.h>
 
 namespace WPEFramework {
@@ -14,7 +14,7 @@ namespace Plugin {
         Spark(const Spark&);
         Spark& operator=(const Spark&);
 
-        class Notification : public RPC::IRemoteProcess::INotification,
+        class Notification : public RPC::IRemoteConnection::INotification,
                              public PluginHost::IStateControl::INotification,
                              public Exchange::IBrowser::INotification {
 
@@ -37,7 +37,7 @@ namespace Plugin {
             BEGIN_INTERFACE_MAP(Notification)
                 INTERFACE_ENTRY(PluginHost::IStateControl::INotification)
                 INTERFACE_ENTRY(Exchange::IBrowser::INotification)
-                INTERFACE_ENTRY(RPC::IRemoteProcess::INotification)
+                INTERFACE_ENTRY(RPC::IRemoteConnection::INotification)
             END_INTERFACE_MAP
 
         private:
@@ -58,12 +58,12 @@ namespace Plugin {
             virtual void Closure() override
             {
             }
-            virtual void Activated(RPC::IRemoteProcess*) override
+            virtual void Activated(RPC::IRemoteConnection*) override
             {
             }
-            virtual void Deactivated(RPC::IRemoteProcess* process) override
+            virtual void Deactivated(RPC::IRemoteConnection* connection) override
             {
-                _parent.Deactivated(process);
+                _parent.Deactivated(connection);
             }
 
         private:
@@ -140,7 +140,7 @@ namespace Plugin {
         virtual Core::ProxyType<Web::Response> Process(const Web::Request& request);
 
     private:
-        void Deactivated(RPC::IRemoteProcess* process);
+        void Deactivated(RPC::IRemoteConnection* connection);
         void StateChange(const PluginHost::IStateControl::state state);
         void LoadFinished(const string& URL);
         void URLChanged(const string& URL);
@@ -150,20 +150,20 @@ namespace Plugin {
         // JsonRpc
         void RegisterAll();
         void UnregisterAll();
-        uint32_t StateControlCommand(WPEFramework::PluginHost::IStateControl::command command);
-        uint32_t endpoint_status(JsonData::Spark::StatusResultData& response);
-        uint32_t endpoint_suspend(); /* StateControl */
-        uint32_t endpoint_resume(); /* StateControl */
-        uint32_t endpoint_hide();
-        uint32_t endpoint_show();
-        uint32_t endpoint_seturl(const JsonData::Spark::SeturlParamsData& params);
-        void event_urlchange(const string& url, const bool& loaded);
-        void event_statechange(const bool& suspended); /* StateControl */
-        void event_visibilitychange(const bool& hidden);
+        uint32_t get_url(Core::JSON::String& response) const; // Browser
+        uint32_t set_url(const Core::JSON::String& param); // Browser
+        uint32_t get_visibility(Core::JSON::EnumType<JsonData::Browser::VisibilityType>& response) const; // Browser
+        uint32_t set_visibility(const Core::JSON::EnumType<JsonData::Browser::VisibilityType>& param); // Browser
+        uint32_t get_fps(Core::JSON::DecUInt32& response) const; // Browser
+        uint32_t get_state(Core::JSON::EnumType<JsonData::StateControl::StateType>& response) const; // StateControl
+        uint32_t set_state(const Core::JSON::EnumType<JsonData::StateControl::StateType>& param); // StateControl
+        void event_urlchange(const string& url, const bool& loaded); // Browser
+        void event_visibilitychange(const bool& hidden); // Browser
+        void event_statechange(const bool& suspended); // StateControl
 
     private:
         uint8_t _skipURL;
-        uint32_t _pid;
+        uint32_t _connectionId;
         bool _hidden;
         Exchange::IBrowser* _spark;
         Exchange::IMemory* _memory;

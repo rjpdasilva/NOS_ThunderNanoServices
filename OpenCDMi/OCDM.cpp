@@ -87,7 +87,7 @@ namespace Plugin {
         ASSERT(_memory == nullptr);
         ASSERT(_opencdmi == nullptr);
 
-        _pid = 0;
+        _connectionId = 0;
         _service = service;
         _skipURL = static_cast<uint8_t>(_service->WebPrefix().length());
         config.FromString(_service->ConfigLine());
@@ -96,7 +96,7 @@ namespace Plugin {
         // change to "register" the sink for these events !!! So do it ahead of instantiation.
         _service->Register(&_notification);
 
-        _opencdmi = _service->Root<Exchange::IContentDecryption>(_pid, 2000, _T("OCDMImplementation"));
+        _opencdmi = _service->Root<Exchange::IContentDecryption>(_connectionId, 2000, _T("OCDMImplementation"));
 
         if (_opencdmi == nullptr) {
             message = _T("OCDM could not be instantiated.");
@@ -105,7 +105,7 @@ namespace Plugin {
         } else {
             _opencdmi->Configure(_service);
 
-            _memory = WPEFramework::OCDM::MemoryObserver(_pid);
+            _memory = WPEFramework::OCDM::MemoryObserver(_connectionId);
 
             ASSERT(_memory != nullptr);
         }
@@ -124,18 +124,18 @@ namespace Plugin {
 
         if (_opencdmi->Release() != Core::ERROR_DESTRUCTION_SUCCEEDED) {
 
-            ASSERT(_pid != 0);
+            ASSERT(_connectionId != 0);
 
-            TRACE_L1("OCDM Plugin is not properly destructed. %d", _pid);
+            TRACE_L1("OCDM Plugin is not properly destructed. %d", _connectionId);
 
-            RPC::IRemoteProcess* process(_service->RemoteProcess(_pid));
+            RPC::IRemoteConnection* connection(_service->RemoteConnection(_connectionId));
 
             // The process can disappear in the meantime...
-            if (process != nullptr) {
+            if (connection != nullptr) {
 
                 // But if it did not dissapear in the meantime, forcefully terminate it. Shoot to kill :-)
-                process->Terminate();
-                process->Release();
+                connection->Terminate();
+                connection->Release();
             }
         }
 
@@ -240,52 +240,15 @@ namespace Plugin {
         return result;
     }
 
-    void OCDM::Deactivated(RPC::IRemoteProcess* process)
+    void OCDM::Deactivated(RPC::IRemoteConnection* connection)
     {
-        if (process->Id() == _pid) {
+        if (connection->Id() == _connectionId) {
 
             ASSERT(_service != nullptr);
 
             PluginHost::WorkerPool::Instance().Submit(PluginHost::IShell::Job::Create(_service,
                 PluginHost::IShell::DEACTIVATED,
                 PluginHost::IShell::FAILURE));
-        }
-    }
-
-    uint32_t OCDM::drms(Core::JSON::ArrayType<Drm>& result)
-    {
-        RPC::IStringIterator* drmsIter(_opencdmi->Systems());
-        string element;
-        if (drmsIter != nullptr) {
-            while (drmsIter->Next(element) == true) {
-                Drm drm;
-                drm.Name = element;
-                KeySystems(element, drm.KeySystems);
-                result.Add(drm);
-            }
-
-            drmsIter->Release();
-        }
-
-        return Core::ERROR_NONE;
-    }
-
-    uint32_t OCDM::keysystems(const DrmName& name, Core::JSON::ArrayType<Core::JSON::String>& result)
-    {
-        KeySystems(name.Name.Value(), result);
-        return Core::ERROR_NONE;
-    }
-
-    void OCDM::KeySystems(const string& name, Core::JSON::ArrayType<Core::JSON::String>& result) {
-        RPC::IStringIterator* keySystemsIter(_opencdmi->Designators(name));
-        if (keySystemsIter != nullptr) {
-            string element;
-            while (keySystemsIter->Next(element) == true) {
-                Core::JSON::String keySystem;
-                keySystem.FromString(element);
-                result.Add(keySystem);
-            }
-            keySystemsIter->Release();
         }
     }
 }

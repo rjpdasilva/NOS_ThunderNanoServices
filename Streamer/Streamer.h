@@ -48,47 +48,16 @@ namespace Plugin {
                 StreamProxy& _parent;
             };
 
-            class StreamControlSink : public Exchange::IStream::IControl::ICallback {
-            private:
-                StreamControlSink() = delete;
-                StreamControlSink(const StreamControlSink&) = delete;
-                StreamControlSink& operator=(const StreamControlSink&) = delete;
-
-            public:
-                StreamControlSink(StreamProxy* parent)
-                    : _parent(*parent)
-                {
-                    ASSERT(parent != nullptr);
-                }
-                virtual ~StreamControlSink()
-                {
-                }
-
-            public:
-                virtual void TimeUpdate(const uint64_t position) override
-                {
-                    _parent.TimeUpdate(position);
-                }
-
-                BEGIN_INTERFACE_MAP(StreamControlSink)
-                INTERFACE_ENTRY(Exchange::IStream::IControl::ICallback)
-                END_INTERFACE_MAP
-
-            private:
-                StreamProxy& _parent;
-            };
-
         public:
             StreamProxy() = delete;
             StreamProxy(const StreamProxy&) = delete;
             StreamProxy& operator= (const StreamProxy&) = delete;
 
-            StreamProxy(Streamer& parent, const uint8_t index, Exchange::IStream* implementation) 
+            StreamProxy(Streamer& parent, const uint8_t index, Exchange::IStream* implementation)
                 : _parent(parent)
                 , _index(index)
-                , _implementation(implementation) 
-                , _streamSink(this)
-                , _streamControlSink(this) {
+                , _implementation(implementation)
+                , _streamSink(this) {
                 ASSERT (_implementation != nullptr);
                 _implementation->AddRef();
                 _implementation->Callback(&_streamSink);
@@ -114,21 +83,83 @@ namespace Plugin {
             {
                 _parent.StateChange(_index, state);
             }
-            void TimeUpdate(const uint64_t position)
-            {
-                _parent.TimeUpdate(_index, position);
-            }
- 
+
         private:
             Streamer& _parent;
             uint8_t _index;
             Exchange::IStream* _implementation;
             Core::Sink<StreamSink> _streamSink;
-            Core::Sink<StreamControlSink> _streamControlSink;
+        };
+
+        class ControlProxy {
+        private:
+            class ControlSink : public Exchange::IStream::IControl::ICallback {
+            private:
+                ControlSink() = delete;
+                ControlSink(const ControlSink&) = delete;
+                ControlSink& operator=(const ControlSink&) = delete;
+
+            public:
+                ControlSink(ControlProxy* parent)
+                    : _parent(*parent)
+                {
+                    ASSERT(parent != nullptr);
+                }
+                virtual ~ControlSink()
+                {
+                }
+
+            public:
+                virtual void TimeUpdate(const uint64_t position) override
+                {
+                    _parent.TimeUpdate(position);
+                }
+
+                BEGIN_INTERFACE_MAP(ControlSink)
+                INTERFACE_ENTRY(Exchange::IStream::IControl::ICallback)
+                END_INTERFACE_MAP
+
+            private:
+                ControlProxy& _parent;
+            };
+        public:
+            ControlProxy() = delete;
+            ControlProxy(const ControlProxy&) = delete;
+            ControlProxy& operator= (const ControlProxy&) = delete;
+
+            ControlProxy(Streamer& parent, const uint8_t index, Exchange::IStream::IControl* implementation)
+                : _parent(parent)
+                , _index(index)
+                , _implementation(implementation) 
+                , _controlSink(this) {
+                ASSERT (_implementation != nullptr);
+                _implementation->Callback(&_controlSink);
+            }
+            ~ControlProxy() {
+            }
+
+            Exchange::IStream::IControl* operator->() {
+                return (_implementation);
+            }
+            const Exchange::IStream::IControl* operator->() const {
+                return (_implementation);
+            }
+
+        private:
+            void TimeUpdate(const uint64_t position)
+            {
+                _parent.TimeUpdate(_index, position);
+            }
+
+         private:
+            Streamer& _parent;
+            uint8_t _index;
+            Exchange::IStream::IControl* _implementation;
+            Core::Sink<ControlSink> _controlSink;
         };
 
         typedef std::map<uint8_t, StreamProxy> Streams;
-        typedef std::map<uint8_t, Exchange::IStream::IControl*> Controls;
+        typedef std::map<uint8_t, ControlProxy> Controls;
 
         class Config : public Core::JSON::Container {
         private:
@@ -229,7 +260,7 @@ namespace Plugin {
 #endif
         Streamer()
             : _skipURL(0)
-            , _pid(0)
+            , _connectionId(0)
             , _service(nullptr)
             , _player(nullptr)
             , _streams()
@@ -284,7 +315,7 @@ namespace Plugin {
         Core::ProxyType<Web::Response> PutMethod(Core::TextSegmentIterator& index, const Web::Request& request);
         Core::ProxyType<Web::Response> PostMethod(Core::TextSegmentIterator& index, const Web::Request& request);
         Core::ProxyType<Web::Response> DeleteMethod(Core::TextSegmentIterator& index);
-        void Deactivated(RPC::IRemoteProcess* process);
+        void Deactivated(RPC::IRemoteConnection* connection);
 
         void DRM(const uint8_t index, uint32_t state)
         {
@@ -294,6 +325,7 @@ namespace Plugin {
                              _T(", \"drm\": \"") + 
                              stateText + 
                              _T("\" }"));
+            //event_drmchange(std::to_string(index), state);//TODO: check the required functionality first
         }
         void StateChange(const uint8_t index, Exchange::IStream::state state)
         {
@@ -304,6 +336,7 @@ namespace Plugin {
                              _T(", \"stream\": \"") + 
                              Core::EnumerateType<Exchange::IStream::state>(state).Data() + 
                              _T("\" }"));
+            event_statechange(std::to_string(index), static_cast<JsonData::Streamer::StateType>(state));
         }
         void TimeUpdate(const uint8_t index, const uint64_t position)
         {
@@ -311,31 +344,37 @@ namespace Plugin {
                              Core::NumberType<uint8_t>(index).Text() + 
                              _T(", \"time\": ") + 
                              Core::NumberType<uint64_t>(position).Text()+ _T(" }"));
+            event_timeupdate(std::to_string(index), position);
         }
 
         // JsonRpc
         void RegisterAll();
         void UnregisterAll();
-        uint32_t endpoint_Ids(Core::JSON::ArrayType<Core::JSON::DecUInt32>& response);
-        uint32_t endpoint_Type(const Core::JSON::DecUInt32& params, JsonData::Streamer::TypeResultData& response);
-        uint32_t endpoint_DRM(const Core::JSON::DecUInt32& params, JsonData::Streamer::DRMResultData& response);
-        uint32_t endpoint_State(const Core::JSON::DecUInt32& params, JsonData::Streamer::StateResultData& response);
-        uint32_t endpoint_Metadata(const Core::JSON::DecUInt32& params, Core::JSON::String& response);
-        uint32_t endpoint_GetSpeed(const Core::JSON::DecUInt32& params, Core::JSON::DecUInt32& response);
-        uint32_t endpoint_GetPosition(const Core::JSON::DecUInt32& params, Core::JSON::DecUInt32& response);
-        uint32_t endpoint_GetWindow(const Core::JSON::DecUInt32& params, JsonData::Streamer::GeometryInfo& response);
-        uint32_t endpoint_Speed(const JsonData::Streamer::SpeedParamsData& params);
-        uint32_t endpoint_Position(const JsonData::Streamer::PositionParamsData& params);
-        uint32_t endpoint_Window(const JsonData::Streamer::WindowParamsData& params);
-        uint32_t endpoint_Load(const JsonData::Streamer::LoadParamsData& params);
-        uint32_t endpoint_Attach(const Core::JSON::DecUInt32& params);
-        uint32_t endpoint_Detach(const Core::JSON::DecUInt32& params);
-        uint32_t endpoint_CreateStream(const Core::JSON::DecUInt32& params, Core::JSON::DecUInt32& response);
-        uint32_t endpoint_DeleteStream(const Core::JSON::DecUInt32& params);
+        uint32_t endpoint_status(const Core::JSON::DecUInt8& params, JsonData::Streamer::StatusResultData& response);
+        uint32_t endpoint_create(const JsonData::Streamer::CreateParamsData& params, Core::JSON::DecUInt8& response);
+        uint32_t endpoint_destroy(const Core::JSON::DecUInt8& params);
+        uint32_t endpoint_load(const JsonData::Streamer::LoadParamsData& params);
+        uint32_t endpoint_attach(const Core::JSON::DecUInt8& params);
+        uint32_t endpoint_detach(const Core::JSON::DecUInt8& params);
+        uint32_t get_speed(const string& index, Core::JSON::DecSInt32& response) const;
+        uint32_t set_speed(const string& index, const Core::JSON::DecSInt32& param);
+        uint32_t get_position(const string& index, Core::JSON::DecUInt64& response) const;
+        uint32_t set_position(const string& index, const Core::JSON::DecUInt64& param);
+        uint32_t get_window(const string& index, JsonData::Streamer::WindowData& response) const;
+        uint32_t set_window(const string& index, const JsonData::Streamer::WindowData& param);
+        uint32_t get_speeds(const string& index, Core::JSON::ArrayType<Core::JSON::DecSInt32>& response) const;
+        uint32_t get_streams(Core::JSON::ArrayType<Core::JSON::DecUInt32>& response) const;
+        uint32_t get_type(const string& index, JsonData::Streamer::TypeData& response) const;
+        uint32_t get_drm(const string& index, JsonData::Streamer::DrmInfo& response) const;
+        uint32_t get_state(const string& index, JsonData::Streamer::StateInfo& response) const;
+        void event_statechange(const string& id, const JsonData::Streamer::StateType& state);
+        void event_drmchange(const string& id, const JsonData::Streamer::DrmType& drm);
+        void event_timeupdate(const string& id, const uint64_t& time);
+
 
     private:
         uint32_t _skipURL;
-        uint32_t _pid;
+        uint32_t _connectionId;
         PluginHost::IShell* _service;
 
         Exchange::IPlayer* _player;

@@ -11,6 +11,7 @@ set(PLUGIN_OPENCDMI_PLAYREADY_HOME_PATH "/root" CACHE STRING "Playready HOME pat
 
 add_library(${MODULE_NAME} SHARED 
         OCDM.cpp
+        OCDMJsonRpc.cpp
         CENCParser.cpp
         FrameworkRPC.cpp
         Module.cpp)

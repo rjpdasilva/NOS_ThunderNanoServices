@@ -17,6 +17,7 @@
 #include <rtSettings.h>
 
 pxContext context;
+extern rtMutex glContextLock;
 extern rtScript script;
 extern bool gDirtyRectsEnabled;
 
@@ -37,6 +38,7 @@ namespace Plugin {
                 , Width(1280)
                 , Height(720)
                 , AnimationFPS(60)
+                , ClientIdentifier()
                 , EGLProvider(_T("/usr/lib/libEGL.so"))
             {
                 Add(_T("url"), &Url);
@@ -44,6 +46,7 @@ namespace Plugin {
                 Add(_T("height"), &Height);
                 Add(_T("animationfps"), &AnimationFPS);
                 Add(_T("egl"), &EGLProvider);
+                Add(_T("clientidentifier"), &ClientIdentifier);
             }
             ~Config() {}
 
@@ -52,7 +55,60 @@ namespace Plugin {
             Core::JSON::DecUInt32 Width;
             Core::JSON::DecUInt32 Height;
             Core::JSON::DecUInt8 AnimationFPS;
+            Core::JSON::String ClientIdentifier;
             Core::JSON::String EGLProvider;
+        };
+
+       class NotificationSink : public Core::Thread {
+        private:
+            NotificationSink() = delete;
+            NotificationSink(const NotificationSink&) = delete;
+            NotificationSink& operator=(const NotificationSink&) = delete;
+
+        public:
+            NotificationSink(SparkImplementation& parent)
+                : _parent(parent)
+                , _waitTime(0)
+                , _command(PluginHost::IStateControl::SUSPEND)
+            {
+            }
+            virtual ~NotificationSink()
+            {
+                Block();
+                Wait(Thread::STOPPED | Thread::BLOCKED, Core::infinite);
+            }
+
+        public:
+            void RequestForStateChange(const PluginHost::IStateControl::command command)
+            {
+
+                _command = command;
+
+                Run();
+            }
+
+        private:
+            virtual uint32_t Worker()
+            {
+
+                bool success = false;
+
+                if ((IsRunning() == true) && (success == false)) {
+
+                    success = _parent.RequestForStateChange(_command);
+                }
+
+                Block();
+
+                _parent.StateChangeCompleted(success, _command);
+
+                return (Core::infinite);
+            }
+
+        private:
+            SparkImplementation& _parent;
+            uint32_t _waitTime;
+            PluginHost::IStateControl::command _command;
         };
 
         class SceneWindow : public Core::Thread, public pxWindow, public pxIViewContainer {
@@ -65,12 +121,12 @@ namespace Plugin {
                 : Core::Thread(Core::Thread::DefaultStackSize(), _T("Spark"))
                 , _eventLoop()
                 , _view(nullptr)
-                , _closed(false)
                 , _width(~0)
                 , _height(~0)
                 , _animationFPS(~0)
                 , _url()
                 , _fullPath()
+                , _sharedContext(context.createSharedContext())
             {
             }
             virtual ~SceneWindow()
@@ -79,6 +135,13 @@ namespace Plugin {
                 Quit();
 
                 Wait(Thread::STOPPED | Thread::BLOCKED, Core::infinite);
+
+                if (_view != nullptr) {
+                    onCloseRequest();
+
+                    _view->setViewContainer(nullptr);
+                    _view = nullptr;
+                }
             }
 
             uint32_t Configure(PluginHost::IShell* service) {
@@ -152,8 +215,17 @@ namespace Plugin {
                 Core::SystemInfo::SetEnvironment(_T("PXSCENE_PATH"), service->DataPath());
                 Core::SystemInfo::SetEnvironment(_T("RT_EGL_PROVIDER"), config.EGLProvider.Value());
 
+                if (config.ClientIdentifier.IsSet() == true) {
+                    string value(service->Callsign() + ',' + config.ClientIdentifier.Value());
+                    Core::SystemInfo::SetEnvironment(_T("CLIENT_IDENTIFIER"), value);
+                } else {
+                    Core::SystemInfo::SetEnvironment(_T("CLIENT_IDENTIFIER"), service->Callsign());
+                }
+
                 Init();
-                SetURL(_url);
+
+                string prefix = "shell.js?url="; //Use prefix only first launch.
+                SetURL(_url, prefix);
 
                 return result;
             }
@@ -162,11 +234,10 @@ namespace Plugin {
                 return (_url);
             }
 
-            void SetURL(const string& url)
+            void SetURL(const string& url, const string prefix = "")
             {
                 _url = url;
 
-                _closed = true;
                 Quit();
 
                 Wait(Thread::STOPPED | Thread::BLOCKED, Core::infinite);
@@ -176,22 +247,16 @@ namespace Plugin {
                     _fullPath.clear();
 
                 } else {
-                    TCHAR prefix[] = _T("shell.js?url=");
-                    TCHAR buffer[MAX_URL_SIZE + sizeof(prefix)];
+                    TCHAR buffer[MAX_URL_SIZE + prefix.size()];
+                    memset(buffer, 0, MAX_URL_SIZE + prefix.size());
+
                     Core::URL analyser(url.c_str());
                     uint16_t length = 0;
 
-                    strncpy(buffer, prefix, sizeof(prefix));
-                    if ((analyser.IsValid() == true) && ((analyser.Type() == Core::URL::SCHEME_HTTP) || (analyser.Type() == Core::URL::SCHEME_HTTPS))) {
-                        length = Core::URL::Encode(
-                                         url.c_str(),
-                                         static_cast<uint16_t>(url.length()),
-                                         &(buffer[sizeof(prefix)]),
-                                         sizeof(buffer) - sizeof(prefix));
-
-                    } else {
-                        length = std::min(url.length(), sizeof(buffer) - sizeof(prefix));
+                    if (!prefix.empty()) {
+                        strncpy(buffer, prefix.c_str(), prefix.size());
                     }
+                    length = std::min(url.length(), sizeof(buffer) - prefix.size());
 
                     if (length >= (sizeof(buffer) - sizeof(prefix))) {
 
@@ -203,7 +268,6 @@ namespace Plugin {
 
                     ENTERSCENELOCK()
 
-                    _closed = false;
 
                     _fullPath = buffer;
 
@@ -232,6 +296,8 @@ namespace Plugin {
                 bool status = false;
                 rtValue r;
 
+                glContextLock.lock();
+                _sharedContext->makeCurrent(true);
                 if (_view != nullptr) {
                     pxScriptView* realClass = reinterpret_cast<pxScriptView*>(_view.getPtr());
                     
@@ -239,15 +305,15 @@ namespace Plugin {
                         if (suspend == true) {
                             realClass->suspend(r, status);
                             TRACE(Trace::Information, (_T("Resume requested. Success: %s"), status ? _T("true") : _T("false")));
-                            _closed = true;
                         }
                         else {
                             realClass->resume(r, status);
                             TRACE(Trace::Information, (_T("Resume requested. Success: %s"), status ? _T("true") : _T("false")));
-                            _closed = false;
                         }
                     }
                 }
+                _sharedContext->makeCurrent(false);
+                glContextLock.unlock();
                 return status;
             }
 
@@ -278,7 +344,7 @@ namespace Plugin {
             virtual void onCloseRequest() override
             {
                 ENTERSCENELOCK();
-                if ((_view != nullptr) /*&& (_closed == false)*/) {
+                if (_view != nullptr) {
 
                     script.collectGarbage();
                     _view->onCloseRequest();
@@ -292,7 +358,7 @@ namespace Plugin {
             virtual void onAnimationTimer() override
             {
                 ENTERSCENELOCK();
-                if ((_view != nullptr) && (!_closed)) {
+                if (_view != nullptr) {
                     _view->onUpdate(pxSeconds());
                 }
                 EXITSCENELOCK();
@@ -450,12 +516,20 @@ namespace Plugin {
                 }
                 else {
                     // This results in a reference counted object!!!
-                    _view = new pxScriptView(_fullPath.c_str(),"javascript/node/v8");
+                    if (_view == nullptr) {
+                        _view = new pxScriptView(_fullPath.c_str(),"javascript/node/v8");
 
-                    ASSERT (_view != nullptr);
+                        ASSERT (_view != nullptr);
 
-                    _view->setViewContainer(this);
-                    _view->onSize(_width, _height);
+                        _view->setViewContainer(this);
+                        _view->onSize(_width, _height);
+                    } else {
+                        pxScriptView* realClass = reinterpret_cast<pxScriptView*>(_view.getPtr());
+
+                        ASSERT (realClass != nullptr);
+
+                        realClass->setUrl(_fullPath.c_str());
+                    }
 
                     EXITSCENELOCK()
 
@@ -464,18 +538,7 @@ namespace Plugin {
                     if (IsRunning() == true) {
                         _eventLoop.run();
                     }
-
-                    ENTERSCENELOCK()
-
-                    if (_view != nullptr) {
-                        onCloseRequest();
-
-                        _view->setViewContainer(nullptr);
-                        _view = nullptr;
-                    }
                 }
-
-                EXITSCENELOCK()
 
                 return (Core::infinite);
             }
@@ -483,12 +546,12 @@ namespace Plugin {
         private:
             pxEventLoop _eventLoop;
             pxViewRef _view;
-            bool _closed;
             uint32_t _width;
             uint32_t _height;
             uint8_t _animationFPS;
             string _url;
             string _fullPath;
+            pxSharedContextRef _sharedContext;
         };
 
         SparkImplementation(const SparkImplementation&) = delete;
@@ -501,6 +564,7 @@ namespace Plugin {
             , _state(PluginHost::IStateControl::UNINITIALIZED)
             , _sparkClients()
             , _stateControlClients()
+            , _sink(*this)
         {
         }
 
@@ -600,8 +664,6 @@ namespace Plugin {
 
             _adminLock.Lock();
 
-            PluginHost::IStateControl::state lastState = _state;
-
             if (_state == PluginHost::IStateControl::UNINITIALIZED) {
                 // Seems we are passing state changes before we reached an operational Spark.
                 // Just move the state to what we would like it to be :-)
@@ -612,33 +674,18 @@ namespace Plugin {
                 switch (command) {
                 case PluginHost::IStateControl::SUSPEND:
                     if (_state == PluginHost::IStateControl::RESUMED) {
-
-                        if (_window.Suspend(true) == true) {
-                            _state = PluginHost::IStateControl::SUSPENDED;
-                            result = Core::ERROR_NONE;
-                        }
+                        _sink.RequestForStateChange(PluginHost::IStateControl::SUSPEND);
+                        result = Core::ERROR_NONE;
                     }
                     break;
                 case PluginHost::IStateControl::RESUME:
                     if (_state == PluginHost::IStateControl::SUSPENDED) {
-
-                        if (_window.Suspend(false) == true) {
-                            _state = PluginHost::IStateControl::RESUMED;
-                            result = Core::ERROR_NONE;
-                        }
+                        _sink.RequestForStateChange(PluginHost::IStateControl::RESUME);
+                        result = Core::ERROR_NONE;
                     }
                     break;
                 default:
                     break;
-                }
-            }
-
-            if (lastState != _state) {
-                std::list<PluginHost::IStateControl::INotification*>::iterator index(_stateControlClients.begin());
-
-                while (index != _stateControlClients.end()) {
-                    (*index)->StateChange(_state);
-                    index++;
                 }
             }
 
@@ -647,17 +694,95 @@ namespace Plugin {
             return result;
         }
 
+        void StateChangeCompleted(bool success, const PluginHost::IStateControl::command request)
+        {
+            if (success) {
+                switch (request) {
+                case PluginHost::IStateControl::RESUME:
+
+                    _adminLock.Lock();
+
+                    if (_state != PluginHost::IStateControl::RESUMED) {
+                        StateChange(PluginHost::IStateControl::RESUMED);
+                    }
+
+                    _adminLock.Unlock();
+                    break;
+                case PluginHost::IStateControl::SUSPEND:
+
+                    _adminLock.Lock();
+
+                    if (_state != PluginHost::IStateControl::SUSPENDED) {
+                        StateChange(PluginHost::IStateControl::SUSPENDED);
+                    }
+
+                    _adminLock.Unlock();
+                    break;
+                default:
+                    ASSERT(false);
+                    break;
+                }
+            } else {
+                StateChange(PluginHost::IStateControl::EXITED);
+            }
+        }
+
         BEGIN_INTERFACE_MAP(SparkImplementation)
             INTERFACE_ENTRY(Exchange::IBrowser)
             INTERFACE_ENTRY(PluginHost::IStateControl)
         END_INTERFACE_MAP
 
     private:
+
+        inline bool RequestForStateChange(const PluginHost::IStateControl::command command)
+        {
+            bool result = false;
+
+                switch (command) {
+                case PluginHost::IStateControl::SUSPEND: {
+
+                    if (_window.Suspend(true) == true) {
+                        result = true;
+                    }
+                    break;
+                }
+                case PluginHost::IStateControl::RESUME: {
+
+                    if (_window.Suspend(false) == true) {
+                        result = true;
+                    }
+
+                    break;
+                }
+                default:
+                    ASSERT(false);
+                    break;
+                }
+
+            return result;
+        }
+
+        void StateChange(const PluginHost::IStateControl::state newState)
+        {
+            _adminLock.Lock();
+
+            _state = newState;
+
+            std::list<PluginHost::IStateControl::INotification*>::iterator index(_stateControlClients.begin());
+
+            while (index != _stateControlClients.end()) {
+                (*index)->StateChange(newState);
+                index++;
+            }
+
+            _adminLock.Unlock();
+        }
         mutable Core::CriticalSection _adminLock;
         SceneWindow _window;
         PluginHost::IStateControl::state _state;
         std::list<Exchange::IBrowser::INotification*> _sparkClients;
         std::list<PluginHost::IStateControl::INotification*> _stateControlClients;
+        NotificationSink _sink;
     };
 
     SERVICE_REGISTRATION(SparkImplementation, 1, 0);

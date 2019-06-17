@@ -16,12 +16,12 @@ namespace Plugin {
         ASSERT(_service == nullptr);
 
         // Setup skip URL for right offset.
-        _pid = 0;
+        _connectionId = 0;
         _service = service;
         _skipURL = _service->WebPrefix().length();
 
         config.FromString(_service->ConfigLine());
-        _player = _service->Root<Exchange::IPlayer>(_pid, 2000, _T("StreamerImplementation"));
+        _player = _service->Root<Exchange::IPlayer>(_connectionId, 2000, _T("StreamerImplementation"));
 
         if ((_player != nullptr) && (_service != nullptr)) {
             TRACE(Trace::Information, (_T("Successfully instantiated Streamer")));
@@ -39,21 +39,20 @@ namespace Plugin {
         ASSERT(_service == service);
         ASSERT(_player != nullptr);
 
-        // Stop processing of the browser:
         if (_player->Release() != Core::ERROR_DESTRUCTION_SUCCEEDED) {
 
-            ASSERT(_pid != 0);
+            ASSERT(_connectionId != 0);
 
-            TRACE(Trace::Error, (_T("OutOfProcess Plugin is not properly destructed. PID: %d"), _pid));
+            TRACE(Trace::Error, (_T("OutOfProcess Plugin is not properly destructed. PID: %d"), _connectionId));
 
-            RPC::IRemoteProcess* process(_service->RemoteProcess(_pid));
+            RPC::IRemoteConnection* connection(_service->RemoteConnection(_connectionId));
 
-            // The process can disappear in the meantime...
-            if (process != nullptr) {
+            // The connection can disappear in the meantime...
+            if (connection != nullptr) {
 
                 // But if it did not dissapear in the meantime, forcefully terminate it. Shoot to kill :-)
-                process->Terminate();
-                process->Release();
+                connection->Terminate();
+                connection->Release();
             }
         }
 
@@ -206,7 +205,9 @@ namespace Plugin {
                         if (stream->second->State() == Exchange::IStream::Prepared) {
                             Exchange::IStream::IControl* control = stream->second->Control();
                             if (control != nullptr) {
-                                _controls.insert(std::make_pair(position, control));
+                                _controls.emplace(std::piecewise_construct,
+                                    std::forward_as_tuple(position),
+                                    std::forward_as_tuple(*this, position, control));
                                 result->Message = _T("Decoder Attached");
                                 result->ErrorCode = Web::STATUS_OK;
                             }
@@ -343,11 +344,11 @@ namespace Plugin {
         return result;
     }
 
-    void Streamer::Deactivated(RPC::IRemoteProcess* process)
+    void Streamer::Deactivated(RPC::IRemoteConnection* connection)
     {
         // This can potentially be called on a socket thread, so the deactivation (wich in turn kills this object) must be done
         // on a seperate thread. Also make sure this call-stack can be unwound before we are totally destructed.
-        if (_pid == process->Id()) {
+        if (_connectionId == connection->Id()) {
             ASSERT(_service != nullptr);
             PluginHost::WorkerPool::Instance().Submit(PluginHost::IShell::Job::Create(_service, PluginHost::IShell::DEACTIVATED, PluginHost::IShell::FAILURE));
         }

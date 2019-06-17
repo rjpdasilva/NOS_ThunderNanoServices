@@ -1,7 +1,8 @@
 
-#include <interfaces/json/JsonData_RemoteControl.h>
-#include "RemoteControl.h"
 #include "Module.h"
+#include "RemoteControl.h"
+
+#include <interfaces/json/JsonData_RemoteControl.h>
 
 namespace WPEFramework {
 
@@ -303,7 +304,7 @@ namespace Plugin {
     {
         uint32_t result = Core::ERROR_NONE;
 
-        if ((params.Device.IsSet() == true) && (params.Code.IsSet() == true) && (params.Code.Value() != 0) && (params.Key.IsSet()) && (params.Modifiers.IsSet())) {
+        if ((params.Device.IsSet() == true) && (params.Code.IsSet() == true)) {
             if ((IsVirtualDevice(params.Device.Value()) == true) || (IsPhysicalDevice(params.Device.Value()) == true)) {
                 result = KeyEvent(true, params.Code.Value(), params.Device.Value());
             } else {
