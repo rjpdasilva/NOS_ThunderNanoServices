@@ -301,6 +301,7 @@ namespace Plugin {
         {
             _adminLock.Lock();
             _clientsQueue.insert(client);
+            client->AddRef();
             _adminLock.Unlock();
         }
 
