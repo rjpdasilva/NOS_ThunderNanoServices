@@ -1,13 +1,14 @@
 #include "Module.h"
 
 #include <interfaces/IComposition.h>
+#include <set>
 
 MODULE_NAME_DECLARATION(BUILD_REFERENCE)
 
 namespace WPEFramework {
 namespace Plugin {
 
-    class CompositorImplementation : public Exchange::IComposition {
+    class CompositorImplementation : public Exchange::IComposition, public Core::Thread {
     private:
         CompositorImplementation(const CompositorImplementation&) = delete;
         CompositorImplementation& operator=(const CompositorImplementation&) = delete;
@@ -46,7 +47,8 @@ namespace Plugin {
                 Exchange::IComposition::IClient* result = element->QueryInterface<Exchange::IComposition::IClient>();
 
                 if (result != nullptr) {
-                    _parent.NewClientOffered(result);
+                    _parent.Submit(result);
+                    _parent.Trigger();
                 }
             }
 
@@ -67,7 +69,9 @@ namespace Plugin {
             , _externalAccess(nullptr)
             , _observers()
             , _clients()
+            , _clientEvent(false, true)
         {
+            Run();
         }
 
         ~CompositorImplementation()
@@ -76,6 +80,10 @@ namespace Plugin {
                 delete _externalAccess;
                 _engine.Release();
             }
+
+            Block();
+            _clientEvent.SetEvent();
+            Wait(Thread::STOPPED | Thread::BLOCKED, Core::infinite);
         }
 
         BEGIN_INTERFACE_MAP(CompositorImplementation)
@@ -273,9 +281,36 @@ namespace Plugin {
             return _clients.find(callsign);
         }
 
+        uint32_t Worker()
+        {
+            if (IsRunning() == true) {
+                if (_clientEvent.Lock(0) == Core::ERROR_NONE) {
+                    _adminLock.Lock();
+                    for (auto client: _clientsQueue) {
+                        NewClientOffered(client);
+                        _clientsQueue.erase(client);
+                    }
+                    _adminLock.Unlock();
+                    _clientEvent.ResetEvent();
+                }
+            }
+            return (Core::infinite);
+        }
+
+        void Submit(Exchange::IComposition::IClient* client)
+        {
+            _adminLock.Lock();
+            _clientsQueue.insert(client);
+            _adminLock.Unlock();
+        }
+
+        void Trigger()
+        {
+            _clientEvent.SetEvent();
+        }
+
         void NewClientOffered(Exchange::IComposition::IClient* client)
         {
-
             ASSERT(client != nullptr);
             if (client != nullptr) {
 
@@ -437,6 +472,8 @@ namespace Plugin {
         ExternalAccess* _externalAccess;
         std::list<Exchange::IComposition::INotification*> _observers;
         ClientDataContainer _clients;
+        std::set<Exchange::IComposition::IClient*> _clientsQueue;
+        mutable Core::Event _clientEvent;
     };
 
     SERVICE_REGISTRATION(CompositorImplementation, 1, 0);
