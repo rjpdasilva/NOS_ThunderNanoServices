@@ -144,24 +144,40 @@ namespace Nexus {
         return (&myDisplay);
     }
 
-    /* virtual */ int Display::Process(const uint32_t data)
+    /* virtual */ int Display::Process(const uint32_t data, const int32_t timeoutMs)
     {
         Message message;
-        if ((data != 0) && (g_pipefd[0] != -1) && (read(g_pipefd[0], &message, sizeof(message)) > 0)) {
+        int status = WPEFramework::Core::ERROR_NONE;
+        if(data != 0) {
+            int ret = 1;
+            if(timeoutMs != -1){
+                fd_set fdSet;
+                FD_ZERO(&fdSet);
+                FD_SET(g_pipefd[0], &fdSet);
+                struct timeval tv{.tv_sec = (timeoutMs / 1000), .tv_usec = (timeoutMs % 1000) * 1000};
+                ret = select(g_pipefd[0]+1, &fdSet, NULL, NULL, &tv);
+            }
 
-            std::list<SurfaceImplementation*>::iterator index(_surfaces.begin());
+            if (ret > 0) {
+                if(read(g_pipefd[0], &message, sizeof(message)) > 0) {
+                    std::list<SurfaceImplementation*>::iterator index(_surfaces.begin());
 
-            while (index != _surfaces.end()) {
-                // RELEASED  = 0,
-                // PRESSED   = 1,
-                // REPEAT    = 2,
-
-                (*index)->SendKey(message.code, (message.type == 0 ? IDisplay::IKeyboard::released : IDisplay::IKeyboard::pressed), time(nullptr));
-                index++;
+                    while (index != _surfaces.end()) {
+                        // RELEASED  = 0,
+                        // PRESSED   = 1,
+                        // REPEAT    = 2,
+                        (*index)->SendKey(message.code, (message.type == 0 ? IDisplay::IKeyboard::released : IDisplay::IKeyboard::pressed), time(nullptr));
+                        index++;
+                    }
+                }
+            } else if(ret == 0){
+                status = WPEFramework::Core::ERROR_TIMEDOUT;
+            }
+            else {
+                status = WPEFramework::Core::ERROR_GENERAL;
             }
         }
-
-        return (0);
+        return (status);
     }
 
     /* virtual */ int Display::FileDescriptor() const

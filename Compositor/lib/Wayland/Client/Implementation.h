@@ -607,7 +607,7 @@ namespace Wayland {
             return (_displayName);
         }
         virtual int FileDescriptor() const override;
-        virtual int Process(const uint32_t data) override;
+        virtual int Process(const uint32_t data, const int32_t timeoutMs = -1) override;
         virtual ISurface* Create(const std::string& name, const uint32_t width, const uint32_t height) override;
 
         inline bool IsOperational() const

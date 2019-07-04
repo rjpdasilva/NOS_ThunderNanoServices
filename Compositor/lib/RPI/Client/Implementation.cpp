@@ -202,7 +202,7 @@ public:
     {
         return (_displayName);
     }
-    virtual int Process(const uint32_t data) override;
+    virtual int Process(const uint32_t data, const int32_t timeoutMs = -1) override;
     virtual int FileDescriptor() const override;
     virtual ISurface* Create(
         const std::string& name,
@@ -399,7 +399,7 @@ Display::~Display()
     }
 }
 
-int Display::Process(const uint32_t data)
+int Display::Process(const uint32_t data, const int32_t /*timeoutMs*/)
 {
     Message message;
     if ((data != 0) && (g_pipefd[0] != -1) && (read(g_pipefd[0], &message, sizeof(message)) > 0)) {

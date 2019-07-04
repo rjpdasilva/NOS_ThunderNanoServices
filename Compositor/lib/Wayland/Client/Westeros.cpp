@@ -1115,7 +1115,7 @@ namespace Wayland {
         }
     }
 
-    int Display::Process(const uint32_t data)
+    int Display::Process(const uint32_t data, const int32_t /*timeoutMs*/)
     {
 
         signed int result(0);

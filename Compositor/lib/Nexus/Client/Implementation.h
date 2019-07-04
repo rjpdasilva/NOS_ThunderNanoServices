@@ -27,6 +27,8 @@
 #include <refsw/nxclient.h>
 #endif
 
+#include <WPEFramework/core/core.h>
+
 namespace WPEFramework {
 namespace Nexus {
 
@@ -125,7 +127,7 @@ namespace Nexus {
         {
             return (_displayName);
         }
-        virtual int Process(const uint32_t data) override;
+        virtual int Process(const uint32_t data, const int timeoutMs = -1) override;
         virtual int FileDescriptor() const override;
         virtual ISurface* Create(const std::string& name, const uint32_t width, const uint32_t height) override;
 
