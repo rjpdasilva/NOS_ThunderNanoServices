@@ -178,10 +178,12 @@ namespace Plugin {
         typedef Core::IteratorType<const std::list<KeyId>, const KeyId&, std::list<KeyId>::const_iterator> Iterator;
 
     public:
-        CommonEncryptionData(const uint8_t data[], const uint16_t length)
+        CommonEncryptionData(const uint8_t * data, const uint16_t length)
             : _keyIds()
         {
-            Parse(data, length);
+            if (data) {
+               Parse(data, length);
+            }
         }
         CommonEncryptionData(const CommonEncryptionData& copy)
             : _keyIds(copy._keyIds)
@@ -332,7 +334,6 @@ namespace Plugin {
         void Parse(const uint8_t data[], const uint16_t length)
         {
             uint16_t offset = 0;
-
             do {
                 // Check if this is a PSSH box...
                 uint32_t size = (data[offset] << 24) | (data[offset + 1] << 16) | (data[offset + 2] << 8) | data[offset + 3];

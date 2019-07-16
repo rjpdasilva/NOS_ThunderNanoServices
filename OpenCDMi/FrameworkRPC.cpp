@@ -754,11 +754,7 @@ namespace Plugin {
                     session = nullptr;
                 } else {
                     CDMi::IMediaKeySessionExt* sessionInterface = nullptr;
-
-                    // TODO
-                    uint8_t initData[] = { 0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17 };
-                    uint16_t initDataLength = sizeof(initData);
-                    CommonEncryptionData keyIds(initData, initDataLength);
+                    CommonEncryptionData keyIds(nullptr, 0);
 
                     // OKe we got a buffer machanism to transfer the raw data, now create
                     // the session.
