@@ -119,12 +119,18 @@ namespace Nexus {
         printf("Constructed the Display: %p - %s", this, _displayName.c_str());
     }
 
-    Display::~Display()
+    void Display::Deinitialize()
     {
         NXPL_UnregisterNexusDisplayPlatform(_nxplHandle);
 #ifdef BACKEND_BCM_NEXUS_NXCLIENT
+	// FIXME: @RefSW 18.1: uninit may not return, causing Deinitialize() to last forever
+	// see JIRA: ticketto :O
         NxClient_Uninit();
 #endif
+    }
+
+    Display::~Display()
+    {
         if (_virtualkeyboard != nullptr) {
             Destruct(_virtualkeyboard);
         }

@@ -111,11 +111,16 @@ namespace Nexus {
         // Lifetime management
         virtual void AddRef() const
         {
+            _refCount++;
         }
         virtual uint32_t Release() const
         {
-            // Display can not be destructed, so who cares :-)
-            return (0);
+            uint32_t status = WPEFramework::Core::ERROR_NONE;
+            if (--_refCount == 0) {
+                const_cast<Display*>(this)->Deinitialize();
+                status  =  WPEFramework::Core::ERROR_DESTRUCTION_SUCCEEDED;
+            }
+            return (status);
         }
 
         // Methods
@@ -149,7 +154,10 @@ namespace Nexus {
             }
         }
 
+        void Deinitialize();
+
     private:
+        mutable uint32_t _refCount;
         const std::string _displayName;
         NXPL_PlatformHandle _nxplHandle;
         void* _virtualkeyboard;
