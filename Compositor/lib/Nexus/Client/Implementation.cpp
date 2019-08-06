@@ -131,6 +131,9 @@ namespace Nexus {
 
     Display::~Display()
     {
+        close(g_pipefd[0]);
+        close(g_pipefd[1]);
+
         if (_virtualkeyboard != nullptr) {
             Destruct(_virtualkeyboard);
         }
