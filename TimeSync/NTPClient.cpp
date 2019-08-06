@@ -44,7 +44,7 @@ namespace Plugin {
     void NTPClient::Initialize(SourceIterator& sources, const uint16_t retries, const uint16_t delay)
     {
         _retryAttempts = retries;
-        _WaitForNetwork = delay;
+        _WaitForNetwork = (delay * 1000); /* in ms */
         _servers.clear();
 
         while (sources.Next() == true) {
