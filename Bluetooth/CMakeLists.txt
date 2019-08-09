@@ -9,6 +9,7 @@ find_package(${NAMESPACE}Plugins REQUIRED)
 
 add_library(${MODULE_NAME} SHARED 
     BluetoothControl.cpp
+    BluetoothControlJsonRpc
     Module.cpp)
 
 set_target_properties(${MODULE_NAME} PROPERTIES

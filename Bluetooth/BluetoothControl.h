@@ -2,11 +2,12 @@
 
 #include "Module.h"
 #include <interfaces/IBluetooth.h>
+#include <interfaces/json/JsonData_BluetoothControl.h>
 
 namespace WPEFramework {
 namespace Plugin {
 
-class BluetoothControl : public PluginHost::IPlugin, public PluginHost::IWeb, public Exchange::IBluetooth {
+class BluetoothControl : public PluginHost::IPlugin, public PluginHost::IWeb, public PluginHost::JSONRPC, public Exchange::IBluetooth {
     private:
         BluetoothControl(const BluetoothControl&) = delete;
         BluetoothControl& operator=(const BluetoothControl&) = delete;
@@ -1014,6 +1015,18 @@ class BluetoothControl : public PluginHost::IPlugin, public PluginHost::IWeb, pu
         void Update(const hci_event_hdr& eventData);
         void Notification(const uint8_t subEvent, const uint16_t length, const uint8_t* dataFrame);
         DeviceImpl* Find(const string&);
+
+    private:
+        void RegisterAll();
+        void UnregisterAll();
+        uint32_t endpoint_pair(const JsonData::Bluetooth::PairParamsInfo& params);
+        uint32_t endpoint_connect(const JsonData::Bluetooth::PairParamsInfo& params);
+        uint32_t endpoint_scan(const JsonData::Bluetooth::ScanParamsData& params);
+        uint32_t endpoint_stopscan();
+        uint32_t endpoint_unpair(const JsonData::Bluetooth::PairParamsInfo& params);
+        uint32_t endpoint_disconnect(const JsonData::Bluetooth::DisconnectParamsData& params);
+        uint32_t get_scanning(Core::JSON::Boolean& response) const;
+        uint32_t get_device(const string& index, Core::JSON::ArrayType<JsonData::Bluetooth::DeviceData>& response) const;
 
     private:
         uint8_t _skipURL;

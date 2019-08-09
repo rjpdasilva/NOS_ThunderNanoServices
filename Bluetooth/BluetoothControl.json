@@ -1,10 +1,15 @@
 {
- "locator":"libWPEFrameworkBluetoothControl.so",
- "classname":"BluetoothControl",
- "autostart":true,
- "configuration":{
-  "interface":0,
-  "port":"/dev/ttyAMA0",
-  "baudrate":921600
- }
-}
+    "$schema": "plugin.schema.json",
+    "info": {
+      "title": "BluetoothControl Plugin",
+      "callsign": "BluetoothControl",
+      "locator": "libWPEFrameworkBluetoothControl.so",
+      "status": "production",
+      "description": "BluetoothControl gives you controll over what is displayed on screen.",
+      "version": "1.0"
+    },
+    "interface": {
+      "$ref": "{interfacedir}/BluetoothControl.json#"
+    }
+  }
+  
