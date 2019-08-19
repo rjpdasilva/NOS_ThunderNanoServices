@@ -6,7 +6,7 @@
 
 **Status: :black_circle::black_circle::black_circle:**
 
-Bluetooth plugin for Thunder framework.
+BluetoothControl plugin for Thunder framework.
 
 ### Table of Contents
 
@@ -22,7 +22,7 @@ Bluetooth plugin for Thunder framework.
 <a name="head.Scope"></a>
 ## Scope
 
-This document describes purpose and functionality of the Bluetooth plugin. It includes detailed specification of its configuration, methods and properties provided.
+This document describes purpose and functionality of the BluetoothControl plugin. It includes detailed specification of its configuration, methods and properties provided.
 
 <a name="head.Case_Sensitivity"></a>
 ## Case Sensitivity
@@ -72,16 +72,16 @@ The table below lists configuration options of the plugin.
 | Name | Type | Description |
 | :-------- | :-------- | :-------- |
 | callsign | string | Plugin instance name (default: *BluetoothControl*) |
-| classname | string | Class name: *Bluetooth* |
+| classname | string | Class name: *BluetoothControl* |
 | locator | string | Library name: *libWPEFrameworkBluetoothControl.so* |
 | autostart | boolean | Determines if the plugin is to be started automatically along with the framework |
 
 <a name="head.Methods"></a>
 # Methods
 
-The following methods are provided by the Bluetooth plugin:
+The following methods are provided by the BluetoothControl plugin:
 
-Bluetooth interface methods:
+BluetoothControl interface methods:
 
 | Method | Description |
 | :-------- | :-------- |
@@ -106,7 +106,7 @@ Use this function to request pairing with another bluetooth device. If device ac
 | Name | Type | Description |
 | :-------- | :-------- | :-------- |
 | params | object |  |
-| params.device | string | Device name |
+| params.address | string | Address of the deveice to pair with |
 
 ### Result
 
@@ -130,9 +130,9 @@ Use this function to request pairing with another bluetooth device. If device ac
 {
     "jsonrpc": "2.0", 
     "id": 1234567890, 
-    "method": "Bluetooth.1.pair", 
+    "method": "BluetoothControl.1.pair", 
     "params": {
-        "device": "iPhone8"
+        "address": "11::22::33:44:55:66"
     }
 }
 ```
@@ -159,7 +159,7 @@ Use this function to connecto to bluetooth device. Devices must be paired before
 | Name | Type | Description |
 | :-------- | :-------- | :-------- |
 | params | object |  |
-| params.device | string | Device name |
+| params.address | string | Address of the deveice to pair with |
 
 ### Result
 
@@ -183,9 +183,9 @@ Use this function to connecto to bluetooth device. Devices must be paired before
 {
     "jsonrpc": "2.0", 
     "id": 1234567890, 
-    "method": "Bluetooth.1.connect", 
+    "method": "BluetoothControl.1.connect", 
     "params": {
-        "device": "iPhone8"
+        "address": "11::22::33:44:55:66"
     }
 }
 ```
@@ -223,6 +223,12 @@ Use this function to search for bluetooth devices that are advertising themselfs
 | :-------- | :-------- | :-------- |
 | result | null | Always null |
 
+### Errors
+
+| Code | Message | Description |
+| :-------- | :-------- | :-------- |
+| 1 | ```ERROR_GENERAL``` | Scanning failed |
+
 ### Example
 
 #### Request
@@ -231,12 +237,12 @@ Use this function to search for bluetooth devices that are advertising themselfs
 {
     "jsonrpc": "2.0", 
     "id": 1234567890, 
-    "method": "Bluetooth.1.scan", 
+    "method": "BluetoothControl.1.scan", 
     "params": {
-        "lowenergy": false, 
+        "lowenergy": true, 
         "limited": false, 
         "passive": false, 
-        "duration": 0
+        "duration": 10
     }
 }
 ```
@@ -276,7 +282,7 @@ This method takes no parameters.
 {
     "jsonrpc": "2.0", 
     "id": 1234567890, 
-    "method": "Bluetooth.1.stopscan"
+    "method": "BluetoothControl.1.stopscan"
 }
 ```
 #### Response
@@ -302,7 +308,7 @@ Use this function to invalidate pairing between host and selected device.
 | Name | Type | Description |
 | :-------- | :-------- | :-------- |
 | params | object |  |
-| params.device | string | Device name |
+| params.address | string | Address of the deveice to pair with |
 
 ### Result
 
@@ -324,9 +330,9 @@ Use this function to invalidate pairing between host and selected device.
 {
     "jsonrpc": "2.0", 
     "id": 1234567890, 
-    "method": "Bluetooth.1.unpair", 
+    "method": "BluetoothControl.1.unpair", 
     "params": {
-        "device": "iPhone8"
+        "address": "11::22::33:44:55:66"
     }
 }
 ```
@@ -353,7 +359,7 @@ Use this function to disconnect from
 | Name | Type | Description |
 | :-------- | :-------- | :-------- |
 | params | object |  |
-| params.device | string | Device name |
+| params.address | string | Address of the deveice to pair with |
 | params?.reason | number | <sup>*(optional)*</sup> Code for reason od disconnection |
 
 ### Result
@@ -376,9 +382,9 @@ Use this function to disconnect from
 {
     "jsonrpc": "2.0", 
     "id": 1234567890, 
-    "method": "Bluetooth.1.disconnect", 
+    "method": "BluetoothControl.1.disconnect", 
     "params": {
-        "device": "iPhone8", 
+        "address": "11::22::33:44:55:66", 
         "reason": 0
     }
 }
@@ -395,13 +401,14 @@ Use this function to disconnect from
 <a name="head.Properties"></a>
 # Properties
 
-The following properties are provided by the Bluetooth plugin:
+The following properties are provided by the BluetoothControl plugin:
 
-Bluetooth interface properties:
+BluetoothControl interface properties:
 
 | Property | Description |
 | :-------- | :-------- |
 | [scanning](#property.scanning) <sup>RO</sup> | Tells if host is currently scanning for bluetooth devices |
+| [advertising](#property.advertising) | Defines if device is advertising to be visible by other bluetooth devices |
 | [device](#property.device) <sup>RO</sup> | Informations about devices found during scanning |
 
 <a name="property.scanning"></a>
@@ -425,7 +432,7 @@ Provides access to the tells if host is currently scanning for bluetooth devices
 {
     "jsonrpc": "2.0", 
     "id": 1234567890, 
-    "method": "Bluetooth.1.scanning"
+    "method": "BluetoothControl.1.scanning"
 }
 ```
 #### Get Response
@@ -435,6 +442,60 @@ Provides access to the tells if host is currently scanning for bluetooth devices
     "jsonrpc": "2.0", 
     "id": 1234567890, 
     "result": false
+}
+```
+<a name="property.advertising"></a>
+## *advertising <sup>property</sup>*
+
+Provides access to the defines if device is advertising to be visible by other bluetooth devices.
+
+### Description
+
+Use this property to set or get information whether the device will be visible to other devices
+
+### Value
+
+| Name | Type | Description |
+| :-------- | :-------- | :-------- |
+| (property) | boolean | Defines if device is advertising to be visible by other bluetooth devices |
+
+### Example
+
+#### Get Request
+
+```json
+{
+    "jsonrpc": "2.0", 
+    "id": 1234567890, 
+    "method": "BluetoothControl.1.advertising"
+}
+```
+#### Get Response
+
+```json
+{
+    "jsonrpc": "2.0", 
+    "id": 1234567890, 
+    "result": false
+}
+```
+#### Set Request
+
+```json
+{
+    "jsonrpc": "2.0", 
+    "id": 1234567890, 
+    "method": "BluetoothControl.1.advertising", 
+    "params": false
+}
+```
+#### Set Response
+
+```json
+{
+    "jsonrpc": "2.0", 
+    "id": 1234567890, 
+    "result": "null"
 }
 ```
 <a name="property.device"></a>
@@ -457,7 +518,7 @@ Provides access to the informations about devices found during scanning. If inde
 | (property)[#]?.paired | boolean | <sup>*(optional)*</sup> Describes if device is paired with host |
 | (property)[#]?.reason | integer | <sup>*(optional)*</sup> Code for reason of last disconnection |
 
-> The *device* shall be passed as the index to the property, e.g. *Bluetooth.1.device@iPhone8*.
+> The *address* shall be passed as the index to the property, e.g. *BluetoothControl.1.device@11::22::33:44:55:66*.
 
 ### Errors
 
@@ -473,7 +534,7 @@ Provides access to the informations about devices found during scanning. If inde
 {
     "jsonrpc": "2.0", 
     "id": 1234567890, 
-    "method": "Bluetooth.1.device@iPhone8"
+    "method": "BluetoothControl.1.device@11::22::33:44:55:66"
 }
 ```
 #### Get Response

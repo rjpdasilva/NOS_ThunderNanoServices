@@ -1,5 +1,5 @@
 
-// C++ classes for Bluetooth API JSON-RPC API.
+// C++ classes for BluetoothControl API JSON-RPC API.
 // Generated automatically from 'BluetoothControl.json'.
 
 // Note: This code is inherently not thread safe. If required, proper synchronisation must be added.
@@ -12,7 +12,7 @@ namespace WPEFramework {
 
 namespace JsonData {
 
-    namespace Bluetooth {
+    namespace BluetoothControl {
 
         // Common classes
         //
@@ -22,14 +22,14 @@ namespace JsonData {
             PairParamsInfo()
                 : Core::JSON::Container()
             {
-                Add(_T("device"), &Device);
+                Add(_T("address"), &Address);
             }
 
             PairParamsInfo(const PairParamsInfo&) = delete;
             PairParamsInfo& operator=(const PairParamsInfo&) = delete;
 
         public:
-            Core::JSON::String Device; // Device name
+            Core::JSON::String Address; // Address of the deveice to pair with
         }; // class PairParamsInfo
 
         // Method params/result classes
@@ -91,7 +91,7 @@ namespace JsonData {
             DisconnectParamsData()
                 : Core::JSON::Container()
             {
-                Add(_T("device"), &Device);
+                Add(_T("address"), &Address);
                 Add(_T("reason"), &Reason);
             }
 
@@ -99,7 +99,7 @@ namespace JsonData {
             DisconnectParamsData& operator=(const DisconnectParamsData&) = delete;
 
         public:
-            Core::JSON::String Device; // Device name
+            Core::JSON::String Address; // Address of the deveice to pair with
             Core::JSON::DecUInt32 Reason; // Code for reason od disconnection
         }; // class DisconnectParamsData
 
@@ -124,7 +124,7 @@ namespace JsonData {
             Core::JSON::DecUInt32 Duration; // Scanning duration in seconds
         }; // class ScanParamsData
 
-    } // namespace Bluetooth
+    } // namespace BluetoothControl
 
 } // namespace JsonData
 

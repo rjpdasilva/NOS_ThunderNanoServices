@@ -7,7 +7,7 @@
 namespace WPEFramework {
 namespace Plugin {
 
-class BluetoothControl : public PluginHost::IPlugin, public PluginHost::IWeb, public PluginHost::JSONRPC, public Exchange::IBluetooth {
+class BluetoothControl : public PluginHost::IPlugin, public PluginHost::IWeb, public Exchange::IBluetooth, public PluginHost::JSONRPC {
     private:
         BluetoothControl(const BluetoothControl&) = delete;
         BluetoothControl& operator=(const BluetoothControl&) = delete;
@@ -952,15 +952,18 @@ class BluetoothControl : public PluginHost::IPlugin, public PluginHost::IWeb, pu
             , _observers()
             , _gattRemotes()
         {
+            RegisterAll();
         }
         virtual ~BluetoothControl()
         {
+            UnregisterAll();
         }
 
     public:
         BEGIN_INTERFACE_MAP(BluetoothControl)
         INTERFACE_ENTRY(PluginHost::IPlugin)
         INTERFACE_ENTRY(PluginHost::IWeb)
+        INTERFACE_ENTRY(PluginHost::IDispatcher)
         INTERFACE_ENTRY(Exchange::IBluetooth)
         END_INTERFACE_MAP
 
@@ -1010,23 +1013,26 @@ class BluetoothControl : public PluginHost::IPlugin, public PluginHost::IWeb, pu
         Core::ProxyType<Web::Response> PutMethod(Core::TextSegmentIterator& index, const Web::Request& request);
         Core::ProxyType<Web::Response> PostMethod(Core::TextSegmentIterator& index, const Web::Request& request);
         Core::ProxyType<Web::Response> DeleteMethod(Core::TextSegmentIterator& index, const Web::Request& request);
+        void NotifyCommandComplete(uint16_t op_code);
         void RemoveDevices(std::function<bool(DeviceImpl*)> filter);
         void Discovered(const bool lowEnergy, const Bluetooth::Address& address, const string& name);
         void Update(const hci_event_hdr& eventData);
         void Notification(const uint8_t subEvent, const uint16_t length, const uint8_t* dataFrame);
-        DeviceImpl* Find(const string&);
+        DeviceImpl* Find(const string&) const;
 
     private:
         void RegisterAll();
         void UnregisterAll();
-        uint32_t endpoint_pair(const JsonData::Bluetooth::PairParamsInfo& params);
-        uint32_t endpoint_connect(const JsonData::Bluetooth::PairParamsInfo& params);
-        uint32_t endpoint_scan(const JsonData::Bluetooth::ScanParamsData& params);
+        uint32_t endpoint_pair(const JsonData::BluetoothControl::PairParamsInfo& params);
+        uint32_t endpoint_connect(const JsonData::BluetoothControl::PairParamsInfo& params);
+        uint32_t endpoint_scan(const JsonData::BluetoothControl::ScanParamsData& params);
         uint32_t endpoint_stopscan();
-        uint32_t endpoint_unpair(const JsonData::Bluetooth::PairParamsInfo& params);
-        uint32_t endpoint_disconnect(const JsonData::Bluetooth::DisconnectParamsData& params);
+        uint32_t endpoint_unpair(const JsonData::BluetoothControl::PairParamsInfo& params);
+        uint32_t endpoint_disconnect(const JsonData::BluetoothControl::DisconnectParamsData& params);
         uint32_t get_scanning(Core::JSON::Boolean& response) const;
-        uint32_t get_device(const string& index, Core::JSON::ArrayType<JsonData::Bluetooth::DeviceData>& response) const;
+        uint32_t get_advertising(Core::JSON::Boolean& response) const;
+        uint32_t set_advertising(const Core::JSON::Boolean& param);
+        uint32_t get_device(const string& index, Core::JSON::ArrayType<JsonData::BluetoothControl::DeviceData>& response) const;
 
     private:
         uint8_t _skipURL;

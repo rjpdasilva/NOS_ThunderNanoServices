@@ -3,35 +3,42 @@
 #include "BluetoothControl.h"
 #include <interfaces/json/JsonData_BluetoothControl.h>
 
+/*
+    // Copy the code below to BluetoothControl class definition
+    // Note: The BluetoothControl class must inherit from PluginHost::JSONRPC
+
+    private:
+        void RegisterAll();
+        void UnregisterAll();
+        uint32_t endpoint_pair(const JsonData::BluetoothControl::PairParamsInfo& params);
+        uint32_t endpoint_connect(const JsonData::BluetoothControl::PairParamsInfo& params);
+        uint32_t endpoint_scan(const JsonData::BluetoothControl::ScanParamsData& params);
+        uint32_t endpoint_stopscan();
+        uint32_t endpoint_unpair(const JsonData::BluetoothControl::PairParamsInfo& params);
+        uint32_t endpoint_disconnect(const JsonData::BluetoothControl::DisconnectParamsData& params);
+        uint32_t get_scanning(Core::JSON::Boolean& response) const;
+        uint32_t get_advertising(Core::JSON::Boolean& response) const;
+        uint32_t set_advertising(const Core::JSON::Boolean& param);
+        uint32_t get_device(const string& index, Core::JSON::ArrayType<JsonData::BluetoothControl::DeviceData>& response) const;
+*/
+
 namespace WPEFramework {
 
 namespace Plugin {
 
     using namespace JsonData::BluetoothControl;
 
-    // Utility function
-    inline DeviceData ConstructDeviceData(const BluetoothControl::DeviceImpl* device) {
-        DeviceData output;
-        output.Address = device->Address();
-        output.Name = device->Name();
-        output.Lowenergy = device->LowEnergy();
-        output.Connected = device->IsConnected();
-        output.Paired = device->IsPaired();
-
-        return output;
-    }
-
-
     // Registration
     //
+
     void BluetoothControl::RegisterAll()
     {
-        JSONRPC::Register<PairParamsInfo,void>(_T("pair"), &BluetoothControl::endpoint_pair, this);
-        JSONRPC::Register<PairParamsInfo,void>(_T("connect"), &BluetoothControl::endpoint_connect, this);
-        JSONRPC::Register<ScanParamsData,void>(_T("scan"), &BluetoothControl::endpoint_scan, this);
-        JSONRPC::Register<void,void>(_T("stopscan"), &BluetoothControl::endpoint_stopscan, this);
-        JSONRPC::Register<PairParamsInfo,void>(_T("unpair"), &BluetoothControl::endpoint_unpair, this);
-        JSONRPC::Register<DisconnectParamsData,void>(_T("disconnect"), &BluetoothControl::endpoint_disconnect, this);
+        Register<PairParamsInfo,void>(_T("pair"), &BluetoothControl::endpoint_pair, this);
+        Register<PairParamsInfo,void>(_T("connect"), &BluetoothControl::endpoint_connect, this);
+        Register<ScanParamsData,void>(_T("scan"), &BluetoothControl::endpoint_scan, this);
+        Register<void,void>(_T("stopscan"), &BluetoothControl::endpoint_stopscan, this);
+        Register<PairParamsInfo,void>(_T("unpair"), &BluetoothControl::endpoint_unpair, this);
+        Register<DisconnectParamsData,void>(_T("disconnect"), &BluetoothControl::endpoint_disconnect, this);
         Property<Core::JSON::Boolean>(_T("scanning"), &BluetoothControl::get_scanning, nullptr, this);
         Property<Core::JSON::Boolean>(_T("advertising"), &BluetoothControl::get_advertising, &BluetoothControl::set_advertising, this);
         Property<Core::JSON::ArrayType<DeviceData>>(_T("device"), &BluetoothControl::get_device, nullptr, this);
@@ -39,15 +46,15 @@ namespace Plugin {
 
     void BluetoothControl::UnregisterAll()
     {
-        JSONRPC::Unregister(_T("disconnect"));
-        JSONRPC::Unregister(_T("unpair"));
-        JSONRPC::Unregister(_T("stopscan"));
-        JSONRPC::Unregister(_T("scan"));
-        JSONRPC::Unregister(_T("connect"));
-        JSONRPC::Unregister(_T("pair"));
-        JSONRPC::Unregister(_T("device"));
-        JSONRPC::Unregister(_T("advertising"));
-        JSONRPC::Unregister(_T("scanning"));
+        Unregister(_T("disconnect"));
+        Unregister(_T("unpair"));
+        Unregister(_T("stopscan"));
+        Unregister(_T("scan"));
+        Unregister(_T("connect"));
+        Unregister(_T("pair"));
+        Unregister(_T("device"));
+        Unregister(_T("advertising"));
+        Unregister(_T("scanning"));
     }
 
     // API implementation
@@ -61,13 +68,12 @@ namespace Plugin {
     //  - ERROR_ASYNC_ABORTED: Pairing aborted
     uint32_t BluetoothControl::endpoint_pair(const PairParamsInfo& params)
     {
+        uint32_t result = Core::ERROR_NONE;
         const string& address = params.Address.Value();
 
-        DeviceImpl* device = Find(address);
-        if (device == nullptr) 
-            return Core::ERROR_UNKNOWN_KEY;
+        // TODO...
 
-        return device->Pair();
+        return result;
     }
 
     // Method: connect - Connect with bluetooth device
@@ -78,50 +84,29 @@ namespace Plugin {
     //  - ERROR_ASYNC_ABORTED: Connecting aborted
     uint32_t BluetoothControl::endpoint_connect(const PairParamsInfo& params)
     {
+        uint32_t result = Core::ERROR_NONE;
         const string& address = params.Address.Value();
 
-        DeviceImpl* device = Find(address);
-        if (device == nullptr) 
-            return Core::ERROR_UNKNOWN_KEY;
+        // TODO...
 
-        return device->Connect();
+        return result;
     }
 
     // Method: scan - Scan environment for bluetooth devices
     // Return codes:
     //  - ERROR_NONE: Success
+    //  - ERROR_GENERAL: Scanning failed
     uint32_t BluetoothControl::endpoint_scan(const ScanParamsData& params)
     {
-        // Default values
-        bool lowenergy = true;
-        bool limited = false; 
-        bool passive = false; 
-        uint32_t duration = 10 /*seconds*/; 
+        uint32_t result = Core::ERROR_NONE;
+        const bool& lowenergy = params.Lowenergy.Value();
+        const bool& limited = params.Limited.Value();
+        const bool& passive = params.Passive.Value();
+        const uint32_t& duration = params.Duration.Value();
 
-        if (params.Lowenergy.IsSet() == true) 
-            lowenergy = params.Lowenergy.Value();
-        if (params.Limited.IsSet() == true) 
-            limited = params.Limited.Value();
-        if (params.Passive.IsSet() == true) 
-            passive = params.Passive.Value();
-        if (params.Duration.IsSet() == true) 
-            duration = params.Duration.Value();
+        // TODO...
 
-        printf("### LE: %d\n", lowenergy);
-        printf("### LIMITED: %d\n", limited);
-        printf("### PASSIVE: %d\n", passive);
-        printf("### DURATION: %d\n", duration);
-
-        uint8_t flags = 0;
-        uint32_t type = 0x338B9E;
-
-        if (lowenergy == true) {
-            _application.Scan(duration, limited, passive);
-        } else {
-            _application.Scan(duration, type, flags);
-        }
-
-        return Core::ERROR_NONE;
+        return result;
     }
 
     // Method: stopscan - Connect with bluetooth device
@@ -129,9 +114,11 @@ namespace Plugin {
     //  - ERROR_NONE: Success
     uint32_t BluetoothControl::endpoint_stopscan()
     {
-        _application.Abort();
+        uint32_t result = Core::ERROR_NONE;
 
-        return Core::ERROR_NONE;
+        // TODO...
+
+        return result;
     }
 
     // Method: unpair - Unpair host from a bluetooth device
@@ -140,13 +127,12 @@ namespace Plugin {
     //  - ERROR_UNKNOWN_KEY: Device not found
     uint32_t BluetoothControl::endpoint_unpair(const PairParamsInfo& params)
     {
+        uint32_t result = Core::ERROR_NONE;
         const string& address = params.Address.Value();
 
-        DeviceImpl* device = Find(address);
-        if (device == nullptr) 
-            return Core::ERROR_UNKNOWN_KEY;
+        // TODO...
 
-        return device->Unpair();
+        return result;
     }
 
     // Method: disconnect - Disconnects host from bluetooth device
@@ -159,11 +145,7 @@ namespace Plugin {
         const string& address = params.Address.Value();
         const uint32_t& reason = params.Reason.Value();
 
-        DeviceImpl* device = Find(address);
-        if (device == nullptr) 
-            return Core::ERROR_UNKNOWN_KEY;
-
-        return device->Disconnect(reason);
+        // TODO...
 
         return result;
     }
@@ -173,7 +155,7 @@ namespace Plugin {
     //  - ERROR_NONE: Success
     uint32_t BluetoothControl::get_scanning(Core::JSON::Boolean& response) const
     {
-        response = IsScanning();
+        // response = ...
 
         return Core::ERROR_NONE;
     }
@@ -206,23 +188,11 @@ namespace Plugin {
     //  - ERROR_UNKNOWN_KEY: Device not found
     uint32_t BluetoothControl::get_device(const string& index, Core::JSON::ArrayType<DeviceData>& response) const
     {
-        uint32_t result = Core::ERROR_NONE;
+        // response = ...
 
-        if (index.empty() == true) {
-            for (auto const device : _devices) {
-                response.Add(ConstructDeviceData(device));
-            }
-        } else {
-            DeviceImpl* device = Find(index);
-
-            if (device != nullptr) 
-                response.Add(ConstructDeviceData(device));
-            else 
-                result = Core::ERROR_UNKNOWN_KEY;
-        }
-
-        return result;
+        return Core::ERROR_NONE;
     }
+
 } // namespace Plugin
 
 }

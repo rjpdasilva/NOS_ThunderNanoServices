@@ -29,7 +29,6 @@ namespace Plugin {
         }
         else {
             _administrator.LocalNode(Core::NodeId(HCI_DEV_NONE, HCI_CHANNEL_CONTROL));
-
             if (Bluetooth::HCISocket::Up(_config.Interface.Value()) == false) {
                 result = "Failed to bring up the Bluetooth interface";
             } else if (_administrator.Open(Core::infinite) != Core::ERROR_NONE) {
@@ -42,15 +41,14 @@ namespace Plugin {
                 result = "Could not open the Bluetooth Application channel";
             } else if (_application.Advertising(true, 0) != Core::ERROR_NONE) {
                 result = "Could not listen to advertisements on the Application channel";
-            }
+            } 
         }
         if ((driverMessage == nullptr) && (result.empty() == false)) {
             Bluetooth::HCISocket::Down(_config.Interface.Value());
             _administrator.Close(Core::infinite);
-            printf("Going down step driver..\n");
             ::destruct_bluetooth_driver();
-            printf("We are down !!!!\n");
         }
+
         return result;
     }
 
@@ -168,7 +166,16 @@ namespace Plugin {
             if (index.Next()) {
                 TRACE(Trace::Information, (string(__FUNCTION__)));
 
-                if (index.Current() == _T("Scan")) {
+                if (index.Current() == _T("Advertise")) {
+                    // TODO: Add option to specify mode
+                    if (_application.Advertising(true, 0) == Core::ERROR_NONE) {
+                        result->ErrorCode = Web::STATUS_OK;
+                        result->Message = _T("Advertising started");
+                    } else {
+                        result->ErrorCode = Web::STATUS_UNPROCESSABLE_ENTITY;
+                        result->Message = _T("Failed to start advertising");
+                    }
+                } else if (index.Current() == _T("Scan")) {
                     Core::URL::KeyValue options(request.Query.Value());
 
                     bool lowEnergy = options.Boolean(_T("LowEnergy"), true);
@@ -265,7 +272,15 @@ namespace Plugin {
             if (index.Next()) {
                 TRACE(Trace::Information, (string(__FUNCTION__)));
 
-                if (index.Current() == _T("Scan")) {
+                if (index.Current() == _T("Advertise")) {
+                    if (_application.Advertising(false) == Core::ERROR_NONE) {
+                        result->ErrorCode = Web::STATUS_OK;
+                        result->Message = _T("Advertising stopped");
+                    } else {
+                        result->Message = _T("Failed to stop advertising");
+                        result->ErrorCode = (Web::STATUS_BAD_GATEWAY);
+                    }
+                } else if (index.Current() == _T("Scan")) {
                     _application.Abort();
                     result->ErrorCode = Web::STATUS_OK;
                     result->Message = _T("Scan stopped.");
@@ -313,6 +328,20 @@ namespace Plugin {
         }
 
         return result;
+    }
+
+    void BluetoothControl::NotifyCommandComplete(uint16_t op_code) {
+        switch (op_code)
+        {
+        case cmd_opcode_pack(OGF_LE_CTL, OCF_LE_SET_SCAN_ENABLE):
+        case cmd_opcode_pack(OGF_HOST_CTL, OCF_WRITE_SCAN_ENABLE):
+            TRACE_L1("Scan complete!");
+            Notify("scan_complete");
+            break;
+        
+        default:
+            break;
+        }
     }
 
     //  IBluetooth methods
@@ -407,15 +436,25 @@ namespace Plugin {
     {
         const uint8_t* data = &(reinterpret_cast<const uint8_t*>(&eventData)[sizeof(hci_event_hdr&)]);
 
+        printf("EVENT: %d, %d\n", eventData.evt, eventData.plen);
+        if (eventData.evt == 62) {
+            const evt_le_meta_event* eventMetaData = reinterpret_cast<const evt_le_meta_event*>(data);
+
+            printf("EVENT METADATA: %02x\n", eventMetaData->subevent);
+        }
+
         switch (eventData.evt) {
             case EVT_CMD_STATUS: {
                  const evt_cmd_status* cs = reinterpret_cast<const evt_cmd_status*>(data);
                  TRACE(Trace::Information, (_T("==EVT_CMD_STATUS: %X-%03X status: %d"), (((cs->opcode >> 10) & 0xF), (cs->opcode & 0x3FF), cs->status)));
+                 TRACE_L1(_T("==EVT_CMD_STATUS: %X-%03X status: %d"), (((cs->opcode >> 10) & 0xF), (cs->opcode & 0x3FF), cs->status))
                  break;
             }
             case EVT_CMD_COMPLETE: {
                  const evt_cmd_complete* cc = reinterpret_cast<const evt_cmd_complete*>(data);
+                 NotifyCommandComplete(cc->opcode);
                  TRACE(Trace::Information, (_T("==EVT_CMD_COMPLETE: %X-%03X"), (((cc->opcode >> 10) & 0xF), (cc->opcode & 0x3FF))));
+                 TRACE_L1(_T("==EVT_CMD_COMPLETE: %X-%03X"), (((cc->opcode >> 10) & 0xF), (cc->opcode & 0x3FF)))
                  break;
             }
             case EVT_LE_META_EVENT: {
@@ -477,7 +516,7 @@ namespace Plugin {
 
         _adminLock.Unlock();
     }
-    BluetoothControl::DeviceImpl* BluetoothControl::Find(const string& address)
+    BluetoothControl::DeviceImpl* BluetoothControl::Find(const string& address) const
     {
         Bluetooth::Address search(address.c_str());
         std::list<DeviceImpl*>::const_iterator index = _devices.begin();
