@@ -1,4 +1,5 @@
 #include "StreamerImplementation.h"
+#include <broadcast/broadcast.h>
 
 namespace WPEFramework {
 
@@ -76,12 +77,25 @@ namespace Plugin {
     {
         string path = "/recordings";
         string recordings;
+        Core::JSON::ArrayType<Broadcast::RecordingInfo> recordingList;
 
         Core::Directory index(path.c_str(), _T("*.info"));
 
         while (index.Next() == true) {
-            printf("%s: recording=%s\n", __FUNCTION__, index.Current().c_str());
+            string filename = index.Current();
+            printf("%s: recording=%s\n", __FUNCTION__, filename.c_str());
+
+            Broadcast::RecordingInfo info;
+            Core::File file(filename);
+            file.Open();
+
+            if (info.FromFile(file)) {
+                recordingList.Add(info);
+            }
+            file.Close();
         }
+
+        recordingList.ToString(recordings);
         return recordings;
     }
 

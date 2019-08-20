@@ -117,8 +117,10 @@ namespace Plugin {
 
         if (index.Next()) {
             if (index.Remainder() == _T("Recordings")) {
-                //response->Recordings =
-                _player->Recordings();
+                string str = _player->Recordings();
+                Core::JSON::ArrayType<Broadcast::RecordingInfo> recordingList;
+                response->Recordings.FromString(str);
+
                 result->ErrorCode = Web::STATUS_OK;
                 result->ContentType = Web::MIMETypes::MIME_JSON;
                 result->Body(response);

@@ -3,6 +3,7 @@
 #include "Module.h"
 #include "Geometry.h"
 #include <interfaces/json/JsonData_Streamer.h>
+#include <broadcast/broadcast.h>
 
 namespace WPEFramework {
 namespace Plugin {
@@ -208,6 +209,7 @@ namespace Plugin {
                 , Metadata(false)
                 , Ids()
                 , RecordingId()
+                , Recordings()
             {
                 Add(_T("url"), &Url);
                 Add(_T("x"), &X);
@@ -227,6 +229,7 @@ namespace Plugin {
                 Add(_T("metadata"), &Metadata);
                 Add(_T("ids"), &Ids);
                 Add(_T("recordingId"), &RecordingId);
+                Add(_T("recordings"), &Recordings);
             }
             ~Data()
             {
@@ -255,6 +258,8 @@ namespace Plugin {
 
             Core::JSON::ArrayType<Core::JSON::DecUInt8> Ids;
             Core::JSON::String RecordingId;
+            // XXX: for now use the internal struct
+            Core::JSON::ArrayType<Broadcast::RecordingInfo> Recordings;
         };
 
     public:
