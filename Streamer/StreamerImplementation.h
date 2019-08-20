@@ -83,6 +83,7 @@ namespace Plugin {
         // IPlayer Interfaces
         virtual uint32_t Configure(PluginHost::IShell* service);
         virtual Exchange::IStream* CreateStream(const Exchange::IStream::streamtype streamType);
+        virtual string Recordings();
 
     private:
         mutable Core::CriticalSection _adminLock;

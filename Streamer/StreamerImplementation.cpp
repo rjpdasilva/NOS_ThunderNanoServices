@@ -71,6 +71,20 @@ namespace Plugin {
 
         return (result);
     }
+
+    /* virtual */ string StreamerImplementation::Recordings()
+    {
+        string path = "/recordings";
+        string recordings;
+
+        Core::Directory index(path.c_str(), _T("*.info"));
+
+        while (index.Next() == true) {
+            printf("%s: recording=%s\n", __FUNCTION__, index.Current().c_str());
+        }
+        return recordings;
+    }
+
 }
 
 }

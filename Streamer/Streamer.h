@@ -130,7 +130,7 @@ namespace Plugin {
             ControlProxy(Streamer& parent, const uint8_t index, Exchange::IStream::IControl* implementation)
                 : _parent(parent)
                 , _index(index)
-                , _implementation(implementation) 
+                , _implementation(implementation)
                 , _controlSink(this) {
                 ASSERT (_implementation != nullptr);
                 _implementation->Callback(&_controlSink);
@@ -207,6 +207,7 @@ namespace Plugin {
                 , Id(~0)
                 , Metadata(false)
                 , Ids()
+                , RecordingId()
             {
                 Add(_T("url"), &Url);
                 Add(_T("x"), &X);
@@ -225,6 +226,7 @@ namespace Plugin {
                 Add(_T("id"), &Id);
                 Add(_T("metadata"), &Metadata);
                 Add(_T("ids"), &Ids);
+                Add(_T("recordingId"), &RecordingId);
             }
             ~Data()
             {
@@ -252,6 +254,7 @@ namespace Plugin {
             Core::JSON::String Metadata;
 
             Core::JSON::ArrayType<Core::JSON::DecUInt8> Ids;
+            Core::JSON::String RecordingId;
         };
 
     public:
@@ -320,10 +323,10 @@ namespace Plugin {
         void DRM(const uint8_t index, uint32_t state)
         {
             string stateText (_T("playready"));
-            _service->Notify(_T("{ \"id\": ") + 
-                             Core::NumberType<uint8_t>(index).Text() + 
-                             _T(", \"drm\": \"") + 
-                             stateText + 
+            _service->Notify(_T("{ \"id\": ") +
+                             Core::NumberType<uint8_t>(index).Text() +
+                             _T(", \"drm\": \"") +
+                             stateText +
                              _T("\" }"));
             //event_drmchange(std::to_string(index), state);//TODO: check the required functionality first
         }
@@ -331,18 +334,18 @@ namespace Plugin {
         {
             TRACE(Trace::Information, (_T("Stream [%d] moved state: [%s]"), index, Core::EnumerateType<Exchange::IStream::state>(state).Data()));
 
-            _service->Notify(_T("{ \"id\": ") + 
-                             Core::NumberType<uint8_t>(index).Text() + 
-                             _T(", \"stream\": \"") + 
-                             Core::EnumerateType<Exchange::IStream::state>(state).Data() + 
+            _service->Notify(_T("{ \"id\": ") +
+                             Core::NumberType<uint8_t>(index).Text() +
+                             _T(", \"stream\": \"") +
+                             Core::EnumerateType<Exchange::IStream::state>(state).Data() +
                              _T("\" }"));
             event_statechange(std::to_string(index), static_cast<JsonData::Streamer::StateType>(state));
         }
         void TimeUpdate(const uint8_t index, const uint64_t position)
         {
-            _service->Notify(_T("{ \"id\": ") + 
-                             Core::NumberType<uint8_t>(index).Text() + 
-                             _T(", \"time\": ") + 
+            _service->Notify(_T("{ \"id\": ") +
+                             Core::NumberType<uint8_t>(index).Text() +
+                             _T(", \"time\": ") +
                              Core::NumberType<uint64_t>(position).Text()+ _T(" }"));
             event_timeupdate(std::to_string(index), position);
         }

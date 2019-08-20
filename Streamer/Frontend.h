@@ -310,6 +310,44 @@ namespace Player {
                 _adminLock.Unlock();
                 return (result);
             }
+
+
+            virtual uint32_t StartRecord()
+            {
+                _adminLock.Lock();
+                ASSERT(_player != nullptr);
+                uint32_t result = _player->StartRecord();
+                _adminLock.Unlock();
+                return (result);
+            }
+            virtual uint32_t StopRecord()
+            {
+                _adminLock.Lock();
+                ASSERT(_player != nullptr);
+                uint32_t result = _player->StopRecord();
+                _adminLock.Unlock();
+                return (result);
+            }
+            virtual uint32_t StartPlay(const string& id)
+            {
+                _adminLock.Lock();
+                ASSERT(_player != nullptr);
+                uint32_t result = _player->StartPlay(id);
+                _adminLock.Unlock();
+                return (result);
+
+            }
+            virtual uint32_t StopPlay()
+            {
+                _adminLock.Lock();
+                ASSERT(_player != nullptr);
+                uint32_t result = _player->StopPlay();
+                _adminLock.Unlock();
+                return (result);
+
+            }
+
+
             virtual string Metadata() const
             {
                 _adminLock.Lock();

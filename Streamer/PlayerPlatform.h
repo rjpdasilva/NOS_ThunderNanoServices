@@ -43,6 +43,12 @@ namespace Player {
             virtual uint32_t AttachDecoder(const uint8_t index) = 0;
             virtual uint32_t DetachDecoder(const uint8_t index) = 0;
 
+            virtual uint32_t StartRecord() = 0;
+            virtual uint32_t StopRecord() = 0;
+
+            virtual uint32_t StartPlay(const string& id) = 0;
+            virtual uint32_t StopPlay() = 0;
+
             virtual uint32_t Speed(const int32_t speed) = 0;
             virtual int32_t Speed() const = 0;
             virtual const std::vector<int32_t>& Speeds() const = 0;

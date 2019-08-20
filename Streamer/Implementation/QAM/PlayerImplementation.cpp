@@ -247,6 +247,43 @@ namespace Implementation {
                 return (result);
             }
 
+            virtual uint32_t StartRecord()
+            {
+                uint32_t result = Core::ERROR_UNAVAILABLE;
+
+                ASSERT(_player != nullptr);
+
+                result = _player->StartRecord();
+                return (result);
+            }
+            virtual uint32_t StopRecord()
+            {
+                uint32_t result = Core::ERROR_UNAVAILABLE;
+
+                ASSERT(_player != nullptr);
+
+                result = _player->StopRecord();
+                return (result);
+            }
+            virtual uint32_t StartPlay(const string& id)
+            {
+                uint32_t result = Core::ERROR_UNAVAILABLE;
+
+                ASSERT(_player != nullptr);
+
+                result = _player->StartPlay(id);
+                return (result);
+            }
+            virtual uint32_t StopPlay()
+            {
+                uint32_t result = Core::ERROR_UNAVAILABLE;
+
+                ASSERT(_player != nullptr);
+
+                result = _player->StopPlay();
+                return (result);
+            }
+
             void StateChange() {
                 ASSERT(_player != nullptr);
 
