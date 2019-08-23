@@ -59,14 +59,14 @@ namespace Plugin {
         }
     }
 
-    /* virtual */ Exchange::IStream* StreamerImplementation::CreateStream(const Exchange::IStream::streamtype streamType)
+    /* virtual */ Exchange::IStream* StreamerImplementation::CreateStream(const Exchange::IStream::streamtype streamType, const bool isPlayback)
     {
 
         Exchange::IStream* result = nullptr;
 
         _adminLock.Lock();
 
-        result = _administrator.Acquire(streamType);
+        result = _administrator.Acquire(streamType, isPlayback);
 
         _adminLock.Unlock();
 

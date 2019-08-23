@@ -27,7 +27,7 @@ namespace Player {
         struct IPlayerPlatform {
             virtual ~IPlayerPlatform() { }
 
-            virtual uint32_t Setup() = 0;
+            virtual uint32_t Setup(const bool isPlayback) = 0;
             virtual uint32_t Teardown() = 0;
 
             virtual void Callback(ICallback* callback) = 0;
@@ -71,7 +71,7 @@ namespace Player {
             virtual uint32_t Initialize(const string& configuration) = 0;
             virtual void Deinitialize() = 0;
 
-            virtual IPlayerPlatform* Create() = 0;
+            virtual IPlayerPlatform* Create(const bool isPlayblack) = 0;
             virtual bool Destroy(IPlayerPlatform* player) = 0;
 
             virtual const string& Name() const = 0;
@@ -230,7 +230,7 @@ namespace Player {
                 _adminLock.Unlock();
             }
 
-            IPlayerPlatform* Create() override
+            IPlayerPlatform* Create(const bool isPlayblack) override
             {
                 IPlayerPlatform* player = nullptr;
 
@@ -240,7 +240,7 @@ namespace Player {
                 if (index < _slots.Size()) {
                     player =  new PLAYER(_streamType, index);
 
-                    if ((player != nullptr) && (player->Setup() != Core::ERROR_NONE)) {
+                    if ((player != nullptr) && (player->Setup(isPlayblack) != Core::ERROR_NONE)) {
                         TRACE(Trace::Error, (_T("Player '%s' setup failed!"),  Name().c_str()));
                         delete player;
                         player = nullptr;

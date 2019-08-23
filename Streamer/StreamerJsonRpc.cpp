@@ -64,6 +64,7 @@ namespace Plugin {
 
         if (params.Type.IsSet()) {
             const StreamType& streamType = params.Type.Value();
+            //const bool& isPlayback = params.IsPlayback.Value();
 
             uint8_t id = 0;
             for (; id < _streams.size(); ++id) {
@@ -75,7 +76,7 @@ namespace Plugin {
 
             if (id < MAX_STREAMS) {
                 Core::EnumerateType<JsonData::Streamer::StreamType> type(streamType);
-                Exchange::IStream* stream = _player->CreateStream(static_cast<const WPEFramework::Exchange::IStream::streamtype>(type.Value()));
+                Exchange::IStream* stream = _player->CreateStream(static_cast<const WPEFramework::Exchange::IStream::streamtype>(type.Value()), /* isPlayback */ 0);
 
                 if (stream != nullptr) {
                     _streams.emplace(std::piecewise_construct, std::forward_as_tuple(id), std::forward_as_tuple(*this, id, stream));
@@ -500,7 +501,7 @@ namespace Plugin {
             result = Core::ERROR_UNKNOWN_KEY;
         }
 
-        return Core::ERROR_NONE;
+        return result;
     }
 
     // Event: statechange - Notifies of stream state change

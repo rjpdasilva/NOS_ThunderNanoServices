@@ -314,8 +314,8 @@ namespace Plugin {
                         Core::EnumerateType<Exchange::IStream::streamtype> type(streamtype);
                         if (type.IsSet()) {
                             Core::ProxyType<Web::JSONBodyType<Data>> response(jsonBodyDataFactory.Element());
-
-                            Exchange::IStream* stream = _player->CreateStream(type.Value());
+                            bool isPlayback = request.Body<const Data>()->IsPlayback.Value();
+                            Exchange::IStream* stream = _player->CreateStream(type.Value(), isPlayback);
                             if (stream != nullptr) {
 
                                 uint8_t position = 0;
