@@ -151,7 +151,7 @@ namespace Implementation {
 
                     result = Core::ERROR_NONE; // PLAYER_RESULT status =
 
-                    // _player->setSpeed(request);
+                    _player->SetSpeed(request);
                     if (result == Core::ERROR_NONE) {
                         _speed = request;
                         if (_speed != 0) {
@@ -249,7 +249,7 @@ namespace Implementation {
 
             virtual uint32_t StartRecord()
             {
-                uint32_t result = Core::ERROR_UNAVAILABLE;
+                uint32_t result = Core::ERROR_NONE;
 
                 ASSERT(_player != nullptr);
 
@@ -258,7 +258,7 @@ namespace Implementation {
             }
             virtual uint32_t StopRecord()
             {
-                uint32_t result = Core::ERROR_UNAVAILABLE;
+                uint32_t result = Core::ERROR_NONE;
 
                 ASSERT(_player != nullptr);
 
@@ -267,16 +267,19 @@ namespace Implementation {
             }
             virtual uint32_t StartPlay(const string& id)
             {
-                uint32_t result = Core::ERROR_UNAVAILABLE;
+                uint32_t result = Core::ERROR_NONE;
 
                 ASSERT(_player != nullptr);
 
                 result = _player->StartPlay(id);
+
+                _state = Exchange::IStream::Playing;
+
                 return (result);
             }
             virtual uint32_t StopPlay()
             {
-                uint32_t result = Core::ERROR_UNAVAILABLE;
+                uint32_t result = Core::ERROR_NONE;
 
                 ASSERT(_player != nullptr);
 
@@ -313,6 +316,8 @@ namespace Implementation {
                 if ( (oldState != _state) && (_callback != nullptr)) {
                     _callback->StateChange(_state);
                 }
+                TRACE_L1("%s:%d state=%d oldState=%d", __FUNCTION__, __LINE__, _state, oldState);
+
             }
 
         private:
