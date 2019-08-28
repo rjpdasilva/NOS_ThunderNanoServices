@@ -1193,7 +1193,7 @@ namespace Plugin {
         }
 
     public:
-        virtual uint32_t Configure(PluginHost::IShell* service)
+        uint32_t Initialize(PluginHost::IShell* service) override
         {
             uint32_t result = Core::ERROR_OPENING_FAILED;
 
@@ -1260,8 +1260,10 @@ namespace Plugin {
                     }
 
                     //now handle the configuration
-                    const string configuration(index.Current().Configuration.Value());
-                    factory->second.Factory->SystemConfig(service, configuration);
+                    if (factory != factories.end()) {
+                        const string configuration(index.Current().Configuration.Value());
+                        factory->second.Factory->Initialize(service, configuration);
+                    }
                 }
             }
 
@@ -1295,6 +1297,14 @@ namespace Plugin {
                 }
             }
             return (result);
+        }
+        void Deinitialize(PluginHost::IShell* service) override {
+            std::map<const string, SystemFactory>::iterator factory(_systemToFactory.begin());
+
+            while (factory != _systemToFactory.end()) {
+                factory->second.Factory->Deinitialize(service);
+                factory++;
+            }
         }
         virtual uint32_t Reset()
         {
