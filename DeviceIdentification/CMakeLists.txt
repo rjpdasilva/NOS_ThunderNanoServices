@@ -1,4 +1,4 @@
-set(PLUGIN_NAME DeviceIdenification)
+set(PLUGIN_NAME DeviceIdentification)
 set(MODULE_NAME ${NAMESPACE}${PLUGIN_NAME})
 
 find_package(NEXUS)
@@ -17,7 +17,7 @@ if(NEXUS_FOUND)
             NXCLIENT::NXCLIENT)
     target_sources(${MODULE_NAME} 
         PRIVATE 
-            implementation/Nexus.cpp)
+            Implementation/Nexus/Nexus.cpp)
 endif()
 
 set_target_properties(${MODULE_NAME} PROPERTIES

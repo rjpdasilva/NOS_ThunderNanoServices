@@ -15,33 +15,33 @@ namespace Plugin {
 
     void RemoteControl::RegisterAll()
     {
-        Register<void,Core::JSON::ArrayType<Core::JSON::String>>(_T("devices"), &RemoteControl::endpoint_devices, this);
-        Register<DeviceParamsInfo,DeviceResultData>(_T("device"), &RemoteControl::endpoint_device, this);
-        Register<KeyParamsInfo,KeyResultData>(_T("key"), &RemoteControl::endpoint_key, this);
-        Register<KeyParamsInfo,void>(_T("delete"), &RemoteControl::endpoint_delete, this);
-        Register<RcinfoInfo,void>(_T("modify"), &RemoteControl::endpoint_modify, this);
-        Register<DeviceParamsInfo,void>(_T("pair"), &RemoteControl::endpoint_pair, this);
+        Register<KeyobjInfo,KeyResultData>(_T("key"), &RemoteControl::endpoint_key, this);
+        Register<KeyobjInfo,void>(_T("send"), &RemoteControl::endpoint_send, this);
+        Register<KeyobjInfo,void>(_T("press"), &RemoteControl::endpoint_press, this);
+        Register<KeyobjInfo,void>(_T("release"), &RemoteControl::endpoint_release, this);
+        Register<RcobjInfo,void>(_T("add"), &RemoteControl::endpoint_add, this);
+        Register<RcobjInfo,void>(_T("modify"), &RemoteControl::endpoint_modify, this);
+        Register<KeyobjInfo,void>(_T("delete"), &RemoteControl::endpoint_delete, this);
+        Register<LoadParamsInfo,void>(_T("load"), &RemoteControl::endpoint_load, this);
+        Register<LoadParamsInfo,void>(_T("save"), &RemoteControl::endpoint_save, this);
+        Register<LoadParamsInfo,void>(_T("pair"), &RemoteControl::endpoint_pair, this);
         Register<UnpairParamsData,void>(_T("unpair"), &RemoteControl::endpoint_unpair, this);
-        Register<RcinfoInfo,void>(_T("send"), &RemoteControl::endpoint_send, this);
-        Register<RcinfoInfo,void>(_T("press"), &RemoteControl::endpoint_press, this);
-        Register<RcinfoInfo,void>(_T("release"), &RemoteControl::endpoint_release, this);
-        Register<DeviceParamsInfo,void>(_T("save"), &RemoteControl::endpoint_save, this);
-        Register<DeviceParamsInfo,void>(_T("load"), &RemoteControl::endpoint_load, this);
-        Register<RcinfoInfo,void>(_T("add"), &RemoteControl::endpoint_add, this);
+        Property<Core::JSON::ArrayType<Core::JSON::String>>(_T("devices"), &RemoteControl::get_devices, nullptr, this);
+        Property<DeviceData>(_T("device"), &RemoteControl::get_device, nullptr, this);
     }
 
     void RemoteControl::UnregisterAll()
     {
-        Unregister(_T("add"));
-        Unregister(_T("load"));
+        Unregister(_T("unpair"));
+        Unregister(_T("pair"));
         Unregister(_T("save"));
+        Unregister(_T("load"));
+        Unregister(_T("delete"));
+        Unregister(_T("modify"));
+        Unregister(_T("add"));
         Unregister(_T("release"));
         Unregister(_T("press"));
         Unregister(_T("send"));
-        Unregister(_T("unpair"));
-        Unregister(_T("pair"));
-        Unregister(_T("modify"));
-        Unregister(_T("delete"));
         Unregister(_T("key"));
         Unregister(_T("device"));
         Unregister(_T("devices"));
@@ -111,79 +111,78 @@ namespace Plugin {
     // API implementation
     //
 
-    // General information.
-    uint32_t RemoteControl::endpoint_devices(Core::JSON::ArrayType<Core::JSON::String>& response)
-    {
-        // Add virtual devices
-        std::list<string>::const_iterator index(_virtualDevices.begin());
+   uint32_t RemoteControl::get_devices(Core::JSON::ArrayType<Core::JSON::String>& response) const
+   {
+       std::list<string>::const_iterator index(_virtualDevices.begin());
 
-        while (index != _virtualDevices.end()) {
-            Core::JSON::String newElement;
-            newElement = *index;
-            response.Add(newElement);
-            index++;
-        }
+       while (index != _virtualDevices.end()) {
+           Core::JSON::String newElement;
+           newElement = *index;
+           response.Add(newElement);
+           index++;
+       }
 
-        // Look at specific devices, if we have, append them to response
-        Remotes::RemoteAdministrator& admin(Remotes::RemoteAdministrator::Instance());
-        Remotes::RemoteAdministrator::Iterator remoteDevices(admin.Producers());
+       // Look at specific devices, if we have, append them to response
+       Remotes::RemoteAdministrator& admin(Remotes::RemoteAdministrator::Instance());
+       Remotes::RemoteAdministrator::Iterator remoteDevices(admin.Producers());
 
-        while (remoteDevices.Next() == true) {
-            Core::JSON::String newElement;
-            newElement = (*remoteDevices)->Name();
-            response.Add(newElement);
-        }
-        return (Core::ERROR_NONE);
-    }
+       while (remoteDevices.Next() == true) {
+           Core::JSON::String newElement;
+           newElement = (*remoteDevices)->Name();
+           response.Add(newElement);
+       }
 
-    // Get device.
-    uint32_t RemoteControl::endpoint_device(const DeviceParamsInfo& params, DeviceResultData& response)
-    {
-        uint32_t result = Core::ERROR_NONE;
+       return Core::ERROR_NONE;
+   }
 
-        if(params.Device.IsSet() == true) {
-            if (IsVirtualDevice(params.Device.Value()) == true) {
-                result = Core::ERROR_GENERAL;
-            } else if (IsPhysicalDevice(params.Device.Value()) == true) {
-                Remotes::RemoteAdministrator& admin(Remotes::RemoteAdministrator::Instance());
-                uint32_t error = admin.Error(params.Device.Value());
+   uint32_t RemoteControl::get_device(const string& index, DeviceData& response) const
+   {
+       uint32_t result = Core::ERROR_NONE;
 
-                if (error == Core::ERROR_NONE) {
-                    // Look at specific devices, if we have, append them to response
-                    Remotes::RemoteAdministrator::Iterator remoteDevices(admin.Producers());
+       if(index.empty() == false) {
+           if (IsVirtualDevice(index) == true) {
+               result = Core::ERROR_GENERAL;
+           } else if (IsPhysicalDevice(index) == true) {
+               Remotes::RemoteAdministrator& admin(Remotes::RemoteAdministrator::Instance());
+               uint32_t error = admin.Error(index);
 
-                    while (remoteDevices.Next() == true) {
-                        if ((*remoteDevices)->Name() == params.Device.Value()) {
-                            response.Name = (*remoteDevices)->Name();
-                            response.Metadata = (*remoteDevices)->MetaData();
-                            break;
-                        }
-                    }
-                }
-            } else {
-                result = Core::ERROR_UNAVAILABLE;
-            }
-        } else {
-            result = Core::ERROR_BAD_REQUEST;
-        }
-        return result;
-    }
+               if (error == Core::ERROR_NONE) {
+                   // Look at specific devices, if we have, append them to response
+                   Remotes::RemoteAdministrator::Iterator remoteDevices(admin.Producers());
 
-    // Key action.
-    uint32_t RemoteControl::endpoint_key(const KeyParamsInfo& params, KeyResultData& response)
+                   while (remoteDevices.Next() == true) {
+                       if ((*remoteDevices)->Name() == index) {
+                           response.Metadata = (*remoteDevices)->MetaData();
+                           break;
+                       }
+                   }
+               }
+           } else {
+               result = Core::ERROR_UNAVAILABLE;
+           }
+       } else {
+           result = Core::ERROR_BAD_REQUEST;
+       }
+
+       return result;
+   }
+
+    uint32_t RemoteControl::endpoint_key(const KeyobjInfo& params, KeyResultData& response)
     {
         uint32_t result = Core::ERROR_NONE;
 
         if ((params.Device.IsSet() == true) && (params.Code.IsSet() == true) && (params.Code.Value() != 0)) {
             if ((IsVirtualDevice(params.Device.Value()) == true) || (IsPhysicalDevice(params.Device.Value()) == true)) {
                 // Load default or specific device mapping
-                PluginHost::VirtualInput::KeyMap& map(_inputHandler->Table(params.Device.Value()));
+                PluginHost::VirtualInput::KeyMap& map(_keyHandler->Table(params.Device.Value()));
                 const PluginHost::VirtualInput::KeyMap::ConversionInfo* codeElements = map[params.Code.Value()];
 
                 if (codeElements != nullptr) {
                     response.Code = params.Code.Value();
                     response.Key = codeElements->Code;
-                    response.Modifiers = Modifiers(codeElements->Modifiers);
+                    if (codeElements->Modifiers != 0) {
+                        response.Modifiers = Modifiers(codeElements->Modifiers);
+                    }
                 } else {
                     result = Core::ERROR_UNKNOWN_KEY;
                 }
@@ -196,15 +195,14 @@ namespace Plugin {
         return result;
     }
 
-    // Key mapping actions.
-    uint32_t RemoteControl::endpoint_delete(const KeyParamsInfo& params)
+    uint32_t RemoteControl::endpoint_delete(const KeyobjInfo& params)
     {
         uint32_t result = Core::ERROR_NONE;
 
         if ((params.Device.IsSet() == true) && (params.Code.IsSet() == true) && (params.Code.Value() != 0)) {
             if ((IsVirtualDevice(params.Device.Value()) == true) || (IsPhysicalDevice(params.Device.Value()) == true)) {
                 // Load default or specific device mapping
-                PluginHost::VirtualInput::KeyMap& map(_inputHandler->Table(params.Device.Value()));
+                PluginHost::VirtualInput::KeyMap& map(_keyHandler->Table(params.Device.Value()));
                 const PluginHost::VirtualInput::KeyMap::ConversionInfo* codeElements = map[params.Code.Value()];
                 if (codeElements != nullptr) {
                     map.Delete(params.Code.Value());
@@ -220,15 +218,14 @@ namespace Plugin {
         return result;
     }
 
-    // Key mapping actions.
-    uint32_t RemoteControl::endpoint_modify(const RcinfoInfo& params)
+    uint32_t RemoteControl::endpoint_modify(const RcobjInfo& params)
     {
         uint32_t result = Core::ERROR_NONE;
 
         if ((params.Device.IsSet() == true) && (params.Code.IsSet() == true) && (params.Code.Value() != 0) && (params.Key.IsSet()) && (params.Modifiers.IsSet())) {
             if ((IsVirtualDevice(params.Device.Value()) == true) || (IsPhysicalDevice(params.Device.Value()) == true)) {
                 // Load default or specific device mapping
-                PluginHost::VirtualInput::KeyMap& map(_inputHandler->Table(params.Device.Value()));
+                PluginHost::VirtualInput::KeyMap& map(_keyHandler->Table(params.Device.Value()));
                 if (map.Modify(params.Code.Value(), params.Key.Value(), Modifiers(params.Modifiers)) == false) {
                     result = Core::ERROR_UNKNOWN_KEY;
                 }
@@ -241,8 +238,7 @@ namespace Plugin {
         return result;
     }
 
-    // Pairing device.
-    uint32_t RemoteControl::endpoint_pair(const DeviceParamsInfo& params)
+    uint32_t RemoteControl::endpoint_pair(const LoadParamsInfo& params)
     {
         uint32_t result = Core::ERROR_NONE;
 
@@ -260,7 +256,6 @@ namespace Plugin {
         return result;
     }
 
-    // Pairing device.
     uint32_t RemoteControl::endpoint_unpair(const UnpairParamsData& params)
     {
         uint32_t result = Core::ERROR_NONE;
@@ -279,12 +274,11 @@ namespace Plugin {
         return result;
     }
 
-    // Key mapping actions.
-    uint32_t RemoteControl::endpoint_send(const RcinfoInfo& params)
+    uint32_t RemoteControl::endpoint_send(const KeyobjInfo& params)
     {
         uint32_t result = Core::ERROR_NONE;
 
-        if ((params.Device.IsSet() == true) && (params.Code.IsSet() == true) && (params.Code.Value() != 0) && (params.Key.IsSet()) && (params.Modifiers.IsSet())) {
+        if ((params.Device.IsSet() == true) && (params.Code.IsSet() == true) && (params.Code.Value() != 0)) {
             if ((IsVirtualDevice(params.Device.Value()) == true) || (IsPhysicalDevice(params.Device.Value()) == true)) {
                 result = KeyEvent(true, params.Code.Value(), params.Device.Value());
                 if (result == Core::ERROR_NONE) {
@@ -299,8 +293,7 @@ namespace Plugin {
         return result;
     }
 
-    // Key mapping actions.
-    uint32_t RemoteControl::endpoint_press(const RcinfoInfo& params)
+    uint32_t RemoteControl::endpoint_press(const KeyobjInfo& params)
     {
         uint32_t result = Core::ERROR_NONE;
 
@@ -316,12 +309,11 @@ namespace Plugin {
         return result;
     }
 
-    // Key mapping actions.
-    uint32_t RemoteControl::endpoint_release(const RcinfoInfo& params)
+    uint32_t RemoteControl::endpoint_release(const KeyobjInfo& params)
     {
         uint32_t result = Core::ERROR_NONE;
 
-        if ((params.Device.IsSet() == true) && (params.Code.IsSet() == true) && (params.Code.Value() != 0) && (params.Key.IsSet()) && (params.Modifiers.IsSet())) {
+        if ((params.Device.IsSet() == true) && (params.Code.IsSet() == true) && (params.Code.Value() != 0)) {
             if ((IsVirtualDevice(params.Device.Value()) == true) || (IsPhysicalDevice(params.Device.Value()) == true)) {
                 result = KeyEvent(false, params.Code.Value(), params.Device.Value());
             } else {
@@ -333,8 +325,7 @@ namespace Plugin {
         return result;
     }
 
-    // Key mapping actions.
-    uint32_t RemoteControl::endpoint_save(const DeviceParamsInfo& params)
+    uint32_t RemoteControl::endpoint_save(const LoadParamsInfo& params)
     {
         uint32_t result = Core::ERROR_NONE;
 
@@ -351,7 +342,7 @@ namespace Plugin {
 
                 if (fileName.empty() == false) {
                     // Seems like we have a default mapping file. Load it..
-                    PluginHost::VirtualInput::KeyMap& map(_inputHandler->Table(params.Device.Value()));
+                    PluginHost::VirtualInput::KeyMap& map(_keyHandler->Table(params.Device.Value()));
                     result = map.Save(fileName);
                 } else {
                     result = Core::ERROR_GENERAL;
@@ -365,8 +356,7 @@ namespace Plugin {
         return result;
     }
 
-    // Key mapping actions.
-    uint32_t RemoteControl::endpoint_load(const DeviceParamsInfo& params)
+    uint32_t RemoteControl::endpoint_load(const LoadParamsInfo& params)
     {
         uint32_t result = Core::ERROR_NONE;
 
@@ -376,7 +366,7 @@ namespace Plugin {
 
                 if (Core::File(fileName).Exists() == true) {
                     // Seems like we have a default mapping file. Load it..
-                    PluginHost::VirtualInput::KeyMap& map(_inputHandler->Table(params.Device.Value()));
+                    PluginHost::VirtualInput::KeyMap& map(_keyHandler->Table(params.Device.Value()));
                     result = map.Load(fileName);
                 } else {
                     result = Core::ERROR_OPENING_FAILED;
@@ -390,14 +380,13 @@ namespace Plugin {
         return result;
     }
 
-    // Key mapping actions.
-    uint32_t RemoteControl::endpoint_add(const RcinfoInfo& params)
+    uint32_t RemoteControl::endpoint_add(const RcobjInfo& params)
     {
         uint32_t result = Core::ERROR_NONE;
-        if ((params.Device.IsSet() == true) && (params.Code.IsSet() == true) && (params.Code.Value() != 0) && (params.Key.IsSet()) && (params.Modifiers.IsSet())) {
+        if ((params.Device.IsSet() == true) && (params.Code.IsSet() == true) && (params.Code.Value() != 0) && (params.Key.IsSet() == true)) {
             if ((IsVirtualDevice(params.Device.Value()) == true) || (IsPhysicalDevice(params.Device.Value()) == true)) {
                 // Load default or specific device mapping
-                PluginHost::VirtualInput::KeyMap& map(_inputHandler->Table(params.Device.Value()));
+                PluginHost::VirtualInput::KeyMap& map(_keyHandler->Table(params.Device.Value()));
                 if (map.Add(params.Code.Value(), params.Key.Value(), Modifiers(params.Modifiers)) == false) {
                     result = Core::ERROR_UNKNOWN_KEY;
                 }
@@ -409,7 +398,6 @@ namespace Plugin {
         }
         return result;
     }
-
 } // namespace Plugin
 
 } // namespace WPEFramework

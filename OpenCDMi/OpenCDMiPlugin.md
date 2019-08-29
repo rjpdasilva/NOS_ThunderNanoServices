@@ -6,7 +6,7 @@
 
 **Status: :black_circle::black_circle::black_circle:**
 
-OCDM plugin for WPEFramework.
+OCDM plugin for Thunder framework.
 
 ### Table of Contents
 
@@ -53,7 +53,7 @@ The table below provides and overview of terms and abbreviations used in this do
 | <a name="ref.HTTP">[HTTP](http://www.w3.org/Protocols)</a> | HTTP specification |
 | <a name="ref.JSON-RPC">[JSON-RPC](https://www.jsonrpc.org/specification)</a> | JSON-RPC 2.0 specification |
 | <a name="ref.JSON">[JSON](http://www.json.org/)</a> | JSON specification |
-| <a name="ref.WPEF">[WPEF](https://github.com/WebPlatformForEmbedded/WPEFramework/blob/master/doc/WPE%20-%20API%20-%20WPEFramework.docx)</a> | WPEFramework API Reference |
+| <a name="ref.Thunder">[Thunder](https://github.com/WebPlatformForEmbedded/Thunder/blob/master/doc/WPE%20-%20API%20-%20WPEFramework.docx)</a> | Thunder API Reference |
 
 <a name="head.Configuration"></a>
 # Configuration
@@ -137,7 +137,7 @@ Provides access to the DRM key systems.
 | (property) | array | DRM key systems |
 | (property)[#] | string | Identifier of a key system |
 
-> The *DRM system* shall be passed as the index to the property, e.g. *OCDM.1.keysystems@PlayReady*.
+> The *drm system* shall be passed as the index to the property, e.g. *OCDM.1.keysystems@PlayReady*.
 
 ### Errors
 

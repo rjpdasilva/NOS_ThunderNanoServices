@@ -1,8 +1,8 @@
-# - Try to find Bluez
+# - Try to find cjson
 # Once done this will define
-#  BLUEZ_FOUND - System has bluez
-#  BLUEZ_INCLUDE_DIRS - The bluez include directories
-#  BLUEZ_LIBRARIES - The libraries needed to use bluez
+#  CJSON_FOUND - System has cjson
+#  CJSON_INCLUDE_DIRS - The cjson include directories
+#  CJSON_LIBRARIES - The libraries needed to use cjson
 #
 # Copyright (C) 2019 Metrological.
 #
@@ -27,38 +27,28 @@
 # OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 # ADVISED OF THE POSSIBILITY OF SUCH DAMAGE
 
-find_package(PkgConfig)
+# cjson has no pc file to search for
 
-pkg_check_modules(PC_BLUEZ QUIET bluez)
+find_path(CJSON_INCLUDE cJSON.h
+    HINTS /usr/include/cjson /usr/local/include/cjson ${CMAKE_INSTALL_PREFIX}/usr/include/cjson)
 
-if (PC_BLUEZ_FOUND)
-    set(BLUEZ_CFLAGS ${PC_BLUEZ_CFLAGS})
-    set(BLUEZ_FOUND ${PC_BLUEZ_FOUND})
-    set(BLUEZ_DEFINITIONS ${PC_BLUEZ_CFLAGS_OTHER})
-    set(BLUEZ_NAMES ${PC_BLUEZ_LIBRARIES})
-    foreach (_library ${BLUEZ_NAMES})
-        find_library(BLUEZ_LIBRARIES_${_library} ${_library}
-        HINTS ${PC_BLUEZ_LIBDIR} ${PC_BLUEZ_LIBRARY_DIRS}
-        )
-        set(BLUEZ_LIBRARIES ${BLUEZ_LIBRARIES} ${BLUEZ_LIBRARIES_${_library}})
-    endforeach ()
-else ()
-    set(BLUEZ_NAMES ${BLUEZ_NAMES} bluez BLUEZ)
-    find_library(BLUEZ_LIBRARIES NAMES ${BLUEZ_NAMES}
-        HINTS ${PC_BLUEZ_LIBDIR} ${PC_BLUEZ_LIBRARY_DIRS}
-    )
-endif ()
+find_library(CJSON_LIBRARY cjson)
 
-find_path(BLUEZ_INCLUDE_DIR_BLUEZ NAMES bluetooth/bluetooth.h
-    HINTS ${PC_BLUEZ_INCLUDEDIR} ${PC_BLUEZ_INCLUDE_DIRS}
-)
+if(EXISTS "${CJSON_LIBRARY}")
+    include(FindPackageHandleStandardArgs)
 
-set(BLUEZ_INCLUDE_DIRS ${BLUEZ_INCLUDE_DIR_BLUEZ} ${BLUEZ_INCLUDE_DIR_BLUEZ_ARCH} CACHE FILEPATH "FIXME")
-set(BLUEZ_LIBRARIES ${BLUEZ_LIBRARIES} CACHE FILEPATH "FIXME")
+    set(CJSON_FOUND TRUE)
 
-include(FindPackageHandleStandardArgs)
+    find_package_handle_standard_args(CJSON DEFAULT_MSG CJSON_FOUND CJSON_INCLUDE CJSON_LIBRARY)
+    mark_as_advanced(CJSON_INCLUDE CJSON_LIBRARY)
 
-find_package_handle_standard_args(BLUEZ DEFAULT_MSG BLUEZ_INCLUDE_DIRS BLUEZ_LIBRARIES)
+    if(NOT TARGET cjson::cjson)
+        add_library(cjson::cjson UNKNOWN IMPORTED)
 
-mark_as_advanced(BLUEZ_INCLUDE_DIRS BLUEZ_LIBRARIES)
-
+        set_target_properties(cjson::cjson PROPERTIES
+                IMPORTED_LINK_INTERFACE_LANGUAGES "C"
+                IMPORTED_LOCATION "${CJSON_LIBRARY}"
+                INTERFACE_INCLUDE_DIRECTORIES "${CJSON_INCLUDE}"
+                )
+    endif()
+endif()

@@ -48,7 +48,7 @@ namespace Player {
         private:
             Core::CriticalSection _adminLock;
             std::map<string, IPlayerPlatformFactory*> _streamers;
-            BitArrayType<16> _slots;
+            Core::BitArrayFlexType<16> _slots;
         };
 
         template<class PLAYER>

@@ -6,7 +6,7 @@
 
 **Status: :black_circle::white_circle::white_circle:**
 
-Streamer plugin for WPEFramework.
+Streamer plugin for Thunder framework.
 
 ### Table of Contents
 
@@ -56,14 +56,14 @@ The table below provides and overview of terms and abbreviations used in this do
 | <a name="ref.HTTP">[HTTP](http://www.w3.org/Protocols)</a> | HTTP specification |
 | <a name="ref.JSON-RPC">[JSON-RPC](https://www.jsonrpc.org/specification)</a> | JSON-RPC 2.0 specification |
 | <a name="ref.JSON">[JSON](http://www.json.org/)</a> | JSON specification |
-| <a name="ref.WPEF">[WPEF](https://github.com/WebPlatformForEmbedded/WPEFramework/blob/master/doc/WPE%20-%20API%20-%20WPEFramework.docx)</a> | WPEFramework API Reference |
+| <a name="ref.Thunder">[Thunder](https://github.com/WebPlatformForEmbedded/Thunder/blob/master/doc/WPE%20-%20API%20-%20WPEFramework.docx)</a> | Thunder API Reference |
 
 <a name="head.Description"></a>
 # Description
 
 
 
-The plugin is designed to be loaded and executed within the WPEFramework. For more information on WPEFramework refer to [[WPEF](#ref.WPEF)].
+The plugin is designed to be loaded and executed within the Thunder framework. For more information about the framework refer to [[Thunder](#ref.Thunder)].
 
 <a name="head.Configuration"></a>
 # Configuration
@@ -376,7 +376,7 @@ Also see: [s](#event.s), [t](#event.t), [a](#event.a), [t](#event.t), [e](#event
 | :-------- | :-------- | :-------- |
 | (property) | number | Speed percentage; e.g.: 0 - pause, 100 - normal playback, -100 - rewind, -200 - reverse at twice the speed, 50 - forward at half speed, etc. Must be one of the speeds supported by the player |
 
-> The *Stream ID* shall be passed as the index to the property, e.g. *Streamer.1.speed@0*.
+> The *stream id* shall be passed as the index to the property, e.g. *Streamer.1.speed@0*.
 
 ### Errors
 
@@ -435,7 +435,7 @@ Provides access to the stream position.
 | :-------- | :-------- | :-------- |
 | (property) | number | Position (in milliseconds) |
 
-> The *Stream ID* shall be passed as the index to the property, e.g. *Streamer.1.position@0*.
+> The *stream id* shall be passed as the index to the property, e.g. *Streamer.1.position@0*.
 
 ### Errors
 
@@ -498,7 +498,7 @@ Provides access to the stream playback window.
 | (property).width | number | Width of the window (in pixels) |
 | (property).height | number | Height of the window (in pixels) |
 
-> The *Stream ID* shall be passed as the index to the property, e.g. *Streamer.1.window@0*.
+> The *stream id* shall be passed as the index to the property, e.g. *Streamer.1.window@0*.
 
 ### Errors
 
@@ -570,7 +570,7 @@ Provides access to the speeds supported by the stream player.
 | (property) | array | Supported speeds (in percentage) |
 | (property)[#] | integer | (speeds in percentage) |
 
-> The *Stream ID* shall be passed as the index to the property, e.g. *Streamer.1.speeds@0*.
+> The *stream id* shall be passed as the index to the property, e.g. *Streamer.1.speeds@0*.
 
 ### Errors
 
@@ -659,7 +659,7 @@ Provides access to the type of a stream.
 | :-------- | :-------- | :-------- |
 | (property) | string | Stream type (must be one of the following: *undefined*, *cable*, *handheld*, *satellite*, *terrestrial*, *dab*, *rf*, *unicast*, *multicast*, *ip*) |
 
-> The *Stream ID* shall be passed as the index to the property, e.g. *Streamer.1.type@0*.
+> The *stream id* shall be passed as the index to the property, e.g. *Streamer.1.type@0*.
 
 ### Errors
 
@@ -702,7 +702,7 @@ Also see: [drmchange](#event.drmchange)
 | :-------- | :-------- | :-------- |
 | (property) | string | DRM used (must be one of the following: *unknown*, *clearkey*, *playready*, *widevine*) |
 
-> The *Stream ID* shall be passed as the index to the property, e.g. *Streamer.1.drm@0*.
+> The *stream id* shall be passed as the index to the property, e.g. *Streamer.1.drm@0*.
 
 ### Errors
 
@@ -745,7 +745,7 @@ Also see: [statechange](#event.statechange)
 | :-------- | :-------- | :-------- |
 | (property) | string | Stream state (must be one of the following: *idle*, *loading*, *prepared*, *paused*, *playing*, *error*) |
 
-> The *Stream ID* shall be passed as the index to the property, e.g. *Streamer.1.state@0*.
+> The *stream id* shall be passed as the index to the property, e.g. *Streamer.1.state@0*.
 
 ### Errors
 
@@ -786,7 +786,7 @@ Provides access to the metadata associated with the stream.
 | :-------- | :-------- | :-------- |
 | (property) | string | Custom player-specific metadata |
 
-> The *Stream ID* shall be passed as the index to the property, e.g. *Streamer.1.metadata@0*.
+> The *stream id* shall be passed as the index to the property, e.g. *Streamer.1.metadata@0*.
 
 ### Errors
 
@@ -817,7 +817,7 @@ Provides access to the metadata associated with the stream.
 <a name="head.Notifications"></a>
 # Notifications
 
-Notifications are autonomous events, triggered by the internals of the plugin, and broadcasted via JSON-RPC to all registered observers. Refer to [[WPEF](#ref.WPEF)] for information on how to register for a notification.
+Notifications are autonomous events, triggered by the internals of the plugin, and broadcasted via JSON-RPC to all registered observers. Refer to [[Thunder](#ref.Thunder)] for information on how to register for a notification.
 
 The following events are provided by the Streamer plugin:
 
@@ -841,7 +841,7 @@ Notifies of stream state change.
 | params | object |  |
 | params.state | string | Stream state (must be one of the following: *idle*, *loading*, *prepared*, *paused*, *playing*, *error*) |
 
-> The *Streamr ID* shall be passed within the designator, e.g. *0.client.events.1*.
+> The *Stream ID* shall be passed within the designator, e.g. *0.client.events.1*.
 
 ### Example
 

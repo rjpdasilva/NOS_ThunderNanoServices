@@ -23,7 +23,7 @@ namespace Plugin {
             Entry()
                 : Core::JSON::Container()
                 , Interface()
-                , Mode(JsonData::NetworkControl::NetworkResultData::ModeType::MANUAL)
+                , Mode(JsonData::NetworkControl::NetworkData::ModeType::MANUAL)
                 , Address()
                 , Mask(32)
                 , Gateway()
@@ -58,7 +58,7 @@ namespace Plugin {
 
         public:
             Core::JSON::String Interface;
-            Core::JSON::EnumType<JsonData::NetworkControl::NetworkResultData::ModeType> Mode;
+            Core::JSON::EnumType<JsonData::NetworkControl::NetworkData::ModeType> Mode;
             Core::JSON::String Address;
             Core::JSON::DecUInt8 Mask;
             Core::JSON::String Gateway;
@@ -210,7 +210,7 @@ namespace Plugin {
 
         public:
             StaticInfo()
-                : _mode(JsonData::NetworkControl::NetworkResultData::ModeType::MANUAL)
+                : _mode(JsonData::NetworkControl::NetworkData::ModeType::MANUAL)
                 , _address()
                 , _gateway()
                 , _broadcast()
@@ -235,7 +235,7 @@ namespace Plugin {
             }
 
         public:
-            inline JsonData::NetworkControl::NetworkResultData::ModeType Mode() const
+            inline JsonData::NetworkControl::NetworkData::ModeType Mode() const
             {
                 return (_mode);
             }
@@ -269,7 +269,7 @@ namespace Plugin {
             }
 
         private:
-            JsonData::NetworkControl::NetworkResultData::ModeType _mode;
+            JsonData::NetworkControl::NetworkData::ModeType _mode;
             Core::IPNode _address;
             Core::NodeId _gateway;
             Core::NodeId _broadcast;
@@ -283,10 +283,10 @@ namespace Plugin {
             DHCPEngine& operator=(const DHCPEngine&) = delete;
 
         public:
-            DHCPEngine(NetworkControl* parent, const string& interfaceName)
+            DHCPEngine(NetworkControl* parent, const string& interfaceName, const string& persistentStoragePath)
                 : _parent(*parent)
                 , _retries(0)
-                , _client(interfaceName, this)
+                , _client(interfaceName, this, persistentStoragePath)
             {
             }
             ~DHCPEngine()
@@ -423,13 +423,13 @@ namespace Plugin {
 
         void RegisterAll();
         void UnregisterAll();
-        uint32_t endpoint_network(const JsonData::NetworkControl::NetworkParamsInfo& params, Core::JSON::ArrayType<JsonData::NetworkControl::NetworkResultData>& response);
-        uint32_t endpoint_reload(const JsonData::NetworkControl::NetworkParamsInfo& params);
-        uint32_t endpoint_request(const JsonData::NetworkControl::NetworkParamsInfo& params);
-        uint32_t endpoint_assign(const JsonData::NetworkControl::NetworkParamsInfo& params);
-        uint32_t endpoint_up(const JsonData::NetworkControl::NetworkParamsInfo& params);
-        uint32_t endpoint_down(const JsonData::NetworkControl::NetworkParamsInfo& params);
-        uint32_t endpoint_flush(const JsonData::NetworkControl::NetworkParamsInfo& params);
+        uint32_t endpoint_reload(const JsonData::NetworkControl::ReloadParamsInfo& params);
+        uint32_t endpoint_request(const JsonData::NetworkControl::ReloadParamsInfo& params);
+        uint32_t endpoint_assign(const JsonData::NetworkControl::ReloadParamsInfo& params);
+        uint32_t endpoint_flush(const JsonData::NetworkControl::ReloadParamsInfo& params);
+        uint32_t get_network(const string& index, Core::JSON::ArrayType<JsonData::NetworkControl::NetworkData>& response) const;
+        uint32_t get_up(const string& index, Core::JSON::Boolean& response) const;
+        uint32_t set_up(const string& index, const Core::JSON::Boolean& param);
 
     private:
         Core::CriticalSection _adminLock;
@@ -438,6 +438,7 @@ namespace Plugin {
         uint8_t _responseTime;
         uint8_t _retries;
         string _dnsFile;
+        string _persistentStoragePath;
         std::list<std::pair<uint16_t, Core::NodeId>> _dns;
         std::map<const string, StaticInfo> _interfaces;
         std::map<const string, Core::ProxyType<DHCPEngine>> _dhcpInterfaces;

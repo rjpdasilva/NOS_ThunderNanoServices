@@ -6,7 +6,7 @@
 
 **Status: :black_circle::black_circle::black_circle:**
 
-TraceControl plugin for WPEFramework.
+TraceControl plugin for Thunder framework.
 
 ### Table of Contents
 
@@ -54,14 +54,14 @@ The table below provides and overview of terms and abbreviations used in this do
 | <a name="ref.HTTP">[HTTP](http://www.w3.org/Protocols)</a> | HTTP specification |
 | <a name="ref.JSON-RPC">[JSON-RPC](https://www.jsonrpc.org/specification)</a> | JSON-RPC 2.0 specification |
 | <a name="ref.JSON">[JSON](http://www.json.org/)</a> | JSON specification |
-| <a name="ref.WPEF">[WPEF](https://github.com/WebPlatformForEmbedded/WPEFramework/blob/master/doc/WPE%20-%20API%20-%20WPEFramework.docx)</a> | WPEFramework API Reference |
+| <a name="ref.Thunder">[Thunder](https://github.com/WebPlatformForEmbedded/Thunder/blob/master/doc/WPE%20-%20API%20-%20WPEFramework.docx)</a> | Thunder API Reference |
 
 <a name="head.Description"></a>
 # Description
 
 The Trace Control plugin provides ability to disable/enable trace output an set its verbosity level.
 
-The plugin is designed to be loaded and executed within the WPEFramework. For more information on WPEFramework refer to [[WPEF](#ref.WPEF)].
+The plugin is designed to be loaded and executed within the Thunder framework. For more information about the framework refer to [[Thunder](#ref.Thunder)].
 
 <a name="head.Configuration"></a>
 # Configuration
@@ -90,7 +90,7 @@ TraceControl interface methods:
 <a name="method.status"></a>
 ## *status <sup>method</sup>*
 
-Retrieves general information
+Retrieves general information.
 
 ### Description
 
@@ -117,7 +117,7 @@ Retrieves the actual trace status information for targeted module and category, 
 | result.settings[#] | object |  |
 | result.settings[#].module | string | Module name |
 | result.settings[#].category | string | Category name |
-| result.settings[#].state | string | State value (must be one of the following: *disabled*, *enabled*, *tristated*) |
+| result.settings[#].state | string | State value (must be one of the following: *enabled*, *disabled*, *tristated*) |
 
 ### Example
 
@@ -159,11 +159,11 @@ Retrieves the actual trace status information for targeted module and category, 
 <a name="method.set"></a>
 ## *set <sup>method</sup>*
 
-Sets traces
+Sets traces.
 
 ### Description
 
-Disables/Enables all/select category traces for particular module.
+Disables/enables all/select category traces for particular module.
 
 ### Parameters
 
@@ -172,7 +172,7 @@ Disables/Enables all/select category traces for particular module.
 | params | object |  |
 | params.module | string | Module name |
 | params.category | string | Category name |
-| params.state | string | State value (must be one of the following: *disabled*, *enabled*, *tristated*) |
+| params.state | string | State value (must be one of the following: *enabled*, *disabled*, *tristated*) |
 
 ### Result
 

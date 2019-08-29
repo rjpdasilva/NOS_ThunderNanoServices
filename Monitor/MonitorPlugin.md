@@ -6,7 +6,7 @@
 
 **Status: :black_circle::black_circle::black_circle:**
 
-Monitor plugin for WPEFramework.
+Monitor plugin for Thunder framework.
 
 ### Table of Contents
 
@@ -14,6 +14,7 @@ Monitor plugin for WPEFramework.
 - [Description](#head.Description)
 - [Configuration](#head.Configuration)
 - [Methods](#head.Methods)
+- [Properties](#head.Properties)
 - [Notifications](#head.Notifications)
 
 <a name="head.Introduction"></a>
@@ -22,7 +23,7 @@ Monitor plugin for WPEFramework.
 <a name="head.Scope"></a>
 ## Scope
 
-This document describes purpose and functionality of the Monitor plugin. It includes detailed specification of its configuration, methods provided and notifications sent.
+This document describes purpose and functionality of the Monitor plugin. It includes detailed specification of its configuration, methods and properties provided, as well as notifications sent.
 
 <a name="head.Case_Sensitivity"></a>
 ## Case Sensitivity
@@ -55,14 +56,14 @@ The table below provides and overview of terms and abbreviations used in this do
 | <a name="ref.HTTP">[HTTP](http://www.w3.org/Protocols)</a> | HTTP specification |
 | <a name="ref.JSON-RPC">[JSON-RPC](https://www.jsonrpc.org/specification)</a> | JSON-RPC 2.0 specification |
 | <a name="ref.JSON">[JSON](http://www.json.org/)</a> | JSON specification |
-| <a name="ref.WPEF">[WPEF](https://github.com/WebPlatformForEmbedded/WPEFramework/blob/master/doc/WPE%20-%20API%20-%20WPEFramework.docx)</a> | WPEFramework API Reference |
+| <a name="ref.Thunder">[Thunder](https://github.com/WebPlatformForEmbedded/Thunder/blob/master/doc/WPE%20-%20API%20-%20WPEFramework.docx)</a> | Thunder API Reference |
 
 <a name="head.Description"></a>
 # Description
 
 The Monitor plugin provides a watchdog-like functionality for framework processes.
 
-The plugin is designed to be loaded and executed within the WPEFramework. For more information on WPEFramework refer to [[WPEF](#ref.WPEF)].
+The plugin is designed to be loaded and executed within the Thunder framework. For more information about the framework refer to [[Thunder](#ref.Thunder)].
 
 <a name="head.Configuration"></a>
 # Configuration
@@ -85,58 +86,32 @@ Monitor interface methods:
 
 | Method | Description |
 | :-------- | :-------- |
-| [status](#method.status) | Returns the memory and process statistics either for a single plugin or all plugins watched by the Monitor |
-| [resetstats](#method.resetstats) | Resets memory and process statistics for a single plugin watched by the Monitor |
-| [restartlimits](#method.restartlimits) | Sets new restart limits for a plugin |
+| [restartlimits](#method.restartlimits) | Sets new restart limits for a service |
+| [resetstats](#method.resetstats) | Resets memory and process statistics for a single service watched by the Monitor |
 
-<a name="method.status"></a>
-## *status <sup>method</sup>*
+<a name="method.restartlimits"></a>
+## *restartlimits <sup>method</sup>*
 
-Returns the memory and process statistics either for a single plugin or all plugins watched by the Monitor
+Sets new restart limits for a service.
 
 ### Parameters
 
 | Name | Type | Description |
 | :-------- | :-------- | :-------- |
 | params | object |  |
-| params.callsign | string | The callsing of a plugin to get measurements snapshot of, if set empty then all observed objects will be returned |
+| params.callsign | string | The callsign of a service to reset measurements snapshot of |
+| params.operational | object | Restart settings for memory consumption type of failures |
+| params.operational.limit | number | Maximum number or restarts to be attempted |
+| params.operational.window | number | Time period within which failures must happen for the limit to be considered crossed |
+| params.memory | object | Restart settings for stability type of failures |
+| params.memory.limit | number | Maximum number or restarts to be attempted |
+| params.memory.window | number | Time period within which failures must happen for the limit to be considered crossed |
 
 ### Result
 
 | Name | Type | Description |
 | :-------- | :-------- | :-------- |
-| result | array |  |
-| result[#] | object |  |
-| result[#].measurements | object | Measurements for the plugin |
-| result[#].measurements.resident | object | Resident memory measurement |
-| result[#].measurements.resident.min | number | Minimal value measured |
-| result[#].measurements.resident.max | number | Maximal value measured |
-| result[#].measurements.resident.average | number | Average of all measurements |
-| result[#].measurements.resident.last | number | Last measured value |
-| result[#].measurements.allocated | object | Allocated memory measurement |
-| result[#].measurements.allocated.min | number | Minimal value measured |
-| result[#].measurements.allocated.max | number | Maximal value measured |
-| result[#].measurements.allocated.average | number | Average of all measurements |
-| result[#].measurements.allocated.last | number | Last measured value |
-| result[#].measurements.shared | object | Shared memory measurement |
-| result[#].measurements.shared.min | number | Minimal value measured |
-| result[#].measurements.shared.max | number | Maximal value measured |
-| result[#].measurements.shared.average | number | Average of all measurements |
-| result[#].measurements.shared.last | number | Last measured value |
-| result[#].measurements.process | object | Processes measurement |
-| result[#].measurements.process.min | number | Minimal value measured |
-| result[#].measurements.process.max | number | Maximal value measured |
-| result[#].measurements.process.average | number | Average of all measurements |
-| result[#].measurements.process.last | number | Last measured value |
-| result[#].measurements.operational | boolean | Whether the plugin is up and running |
-| result[#].measurements.count | number | Number of measurements |
-| result[#].observable | string | A callsign of the watched plugin |
-| result[#].memoryrestartsettings | object | Restart limits for memory consumption related failures applying to the plugin |
-| result[#].memoryrestartsettings.limit | number | Maximum number or restarts to be attempted |
-| result[#].memoryrestartsettings.windowseconds | number | Time period within which failures must happen for the limit to be considered crossed |
-| result[#].operationalrestartsettings | object | Restart limits for stability failures applying to the plugin |
-| result[#].operationalrestartsettings.limit | number | Maximum number or restarts to be attempted |
-| result[#].operationalrestartsettings.windowseconds | number | Time period within which failures must happen for the limit to be considered crossed |
+| result | null | Always null |
 
 ### Example
 
@@ -146,9 +121,17 @@ Returns the memory and process statistics either for a single plugin or all plug
 {
     "jsonrpc": "2.0", 
     "id": 1234567890, 
-    "method": "Monitor.1.status", 
+    "method": "Monitor.1.restartlimits", 
     "params": {
-        "callsign": ""
+        "callsign": "WebServer", 
+        "operational": {
+            "limit": 3, 
+            "window": 60
+        }, 
+        "memory": {
+            "limit": 3, 
+            "window": 60
+        }
     }
 }
 ```
@@ -158,67 +141,27 @@ Returns the memory and process statistics either for a single plugin or all plug
 {
     "jsonrpc": "2.0", 
     "id": 1234567890, 
-    "result": [
-        {
-            "measurements": {
-                "resident": {
-                    "min": 0, 
-                    "max": 100, 
-                    "average": 50, 
-                    "last": 100
-                }, 
-                "allocated": {
-                    "min": 0, 
-                    "max": 100, 
-                    "average": 50, 
-                    "last": 100
-                }, 
-                "shared": {
-                    "min": 0, 
-                    "max": 100, 
-                    "average": 50, 
-                    "last": 100
-                }, 
-                "process": {
-                    "min": 0, 
-                    "max": 100, 
-                    "average": 50, 
-                    "last": 100
-                }, 
-                "operational": true, 
-                "count": 100
-            }, 
-            "observable": "callsign", 
-            "memoryrestartsettings": {
-                "limit": 3, 
-                "windowseconds": 60
-            }, 
-            "operationalrestartsettings": {
-                "limit": 3, 
-                "windowseconds": 60
-            }
-        }
-    ]
+    "result": null
 }
 ```
 <a name="method.resetstats"></a>
 ## *resetstats <sup>method</sup>*
 
-Resets memory and process statistics for a single plugin watched by the Monitor
+Resets memory and process statistics for a single service watched by the Monitor.
 
 ### Parameters
 
 | Name | Type | Description |
 | :-------- | :-------- | :-------- |
 | params | object |  |
-| params.callsign | string | The callsign of a plugin to reset statistics of |
+| params.callsign | string | The callsign of a service to reset statistics of |
 
 ### Result
 
 | Name | Type | Description |
 | :-------- | :-------- | :-------- |
-| result | object | Measurements for the plugin before reset |
-| result.measurements | object | Measurements for the plugin |
+| result | object | Measurements for the service before reset |
+| result.measurements | object | Measurements for the service |
 | result.measurements.resident | object | Resident memory measurement |
 | result.measurements.resident.min | number | Minimal value measured |
 | result.measurements.resident.max | number | Maximal value measured |
@@ -239,15 +182,16 @@ Resets memory and process statistics for a single plugin watched by the Monitor
 | result.measurements.process.max | number | Maximal value measured |
 | result.measurements.process.average | number | Average of all measurements |
 | result.measurements.process.last | number | Last measured value |
-| result.measurements.operational | boolean | Whether the plugin is up and running |
+| result.measurements.operational | boolean | Whether the service is up and running |
 | result.measurements.count | number | Number of measurements |
-| result.observable | string | A callsign of the watched plugin |
-| result.memoryrestartsettings | object | Restart limits for memory consumption related failures applying to the plugin |
-| result.memoryrestartsettings.limit | number | Maximum number or restarts to be attempted |
-| result.memoryrestartsettings.windowseconds | number | Time period within which failures must happen for the limit to be considered crossed |
-| result.operationalrestartsettings | object | Restart limits for stability failures applying to the plugin |
-| result.operationalrestartsettings.limit | number | Maximum number or restarts to be attempted |
-| result.operationalrestartsettings.windowseconds | number | Time period within which failures must happen for the limit to be considered crossed |
+| result.observable | string | A callsign of the watched service |
+| result?.restart | object | <sup>*(optional)*</sup> Restart limits for memory/operational failures applying to the service |
+| result?.restart?.memory | object | <sup>*(optional)*</sup> Restart limits for memory consumption related failures applying to the service |
+| result?.restart?.memory.limit | number | Maximum number or restarts to be attempted |
+| result?.restart?.memory.window | number | Time period within which failures must happen for the limit to be considered crossed |
+| result?.restart?.operational | object | <sup>*(optional)*</sup> Restart limits for stability failures applying to the service |
+| result?.restart?.operational.limit | number | Maximum number or restarts to be attempted |
+| result?.restart?.operational.window | number | Time period within which failures must happen for the limit to be considered crossed |
 
 ### Example
 
@@ -299,76 +243,143 @@ Resets memory and process statistics for a single plugin watched by the Monitor
             "count": 100
         }, 
         "observable": "callsign", 
-        "memoryrestartsettings": {
-            "limit": 3, 
-            "windowseconds": 60
-        }, 
-        "operationalrestartsettings": {
-            "limit": 3, 
-            "windowseconds": 60
+        "restart": {
+            "memory": {
+                "limit": 3, 
+                "window": 60
+            }, 
+            "operational": {
+                "limit": 3, 
+                "window": 60
+            }
         }
     }
 }
 ```
-<a name="method.restartlimits"></a>
-## *restartlimits <sup>method</sup>*
+<a name="head.Properties"></a>
+# Properties
 
-Sets new restart limits for a plugin
+The following properties are provided by the Monitor plugin:
 
-### Parameters
+Monitor interface properties:
+
+| Property | Description |
+| :-------- | :-------- |
+| [status](#property.status) <sup>RO</sup> | Service statistics |
+
+<a name="property.status"></a>
+## *status <sup>property</sup>*
+
+Provides access to the service statistics.
+
+> This property is **read-only**.
+
+### Value
 
 | Name | Type | Description |
 | :-------- | :-------- | :-------- |
-| params | object |  |
-| params.callsign | string | The callsign of a plugin to reset measurements snapshot for |
-| params.operationalrestartsettings | object | Restart setting for memory consumption type of failures |
-| params.operationalrestartsettings.limit | number | Maximum number or restarts to be attempted |
-| params.operationalrestartsettings.windowseconds | number | Time period within which failures must happen for the limit to be considered crossed |
-| params.memoryrestartsettings | object | Restart setting for stability type of failures |
-| params.memoryrestartsettings.limit | number | Maximum number or restarts to be attempted |
-| params.memoryrestartsettings.windowseconds | number | Time period within which failures must happen for the limit to be considered crossed |
+| (property) | array | Service statistics |
+| (property)[#] | object |  |
+| (property)[#].measurements | object | Measurements for the service |
+| (property)[#].measurements.resident | object | Resident memory measurement |
+| (property)[#].measurements.resident.min | number | Minimal value measured |
+| (property)[#].measurements.resident.max | number | Maximal value measured |
+| (property)[#].measurements.resident.average | number | Average of all measurements |
+| (property)[#].measurements.resident.last | number | Last measured value |
+| (property)[#].measurements.allocated | object | Allocated memory measurement |
+| (property)[#].measurements.allocated.min | number | Minimal value measured |
+| (property)[#].measurements.allocated.max | number | Maximal value measured |
+| (property)[#].measurements.allocated.average | number | Average of all measurements |
+| (property)[#].measurements.allocated.last | number | Last measured value |
+| (property)[#].measurements.shared | object | Shared memory measurement |
+| (property)[#].measurements.shared.min | number | Minimal value measured |
+| (property)[#].measurements.shared.max | number | Maximal value measured |
+| (property)[#].measurements.shared.average | number | Average of all measurements |
+| (property)[#].measurements.shared.last | number | Last measured value |
+| (property)[#].measurements.process | object | Processes measurement |
+| (property)[#].measurements.process.min | number | Minimal value measured |
+| (property)[#].measurements.process.max | number | Maximal value measured |
+| (property)[#].measurements.process.average | number | Average of all measurements |
+| (property)[#].measurements.process.last | number | Last measured value |
+| (property)[#].measurements.operational | boolean | Whether the service is up and running |
+| (property)[#].measurements.count | number | Number of measurements |
+| (property)[#].observable | string | A callsign of the watched service |
+| (property)[#]?.restart | object | <sup>*(optional)*</sup> Restart limits for memory/operational failures applying to the service |
+| (property)[#]?.restart?.memory | object | <sup>*(optional)*</sup> Restart limits for memory consumption related failures applying to the service |
+| (property)[#]?.restart?.memory.limit | number | Maximum number or restarts to be attempted |
+| (property)[#]?.restart?.memory.window | number | Time period within which failures must happen for the limit to be considered crossed |
+| (property)[#]?.restart?.operational | object | <sup>*(optional)*</sup> Restart limits for stability failures applying to the service |
+| (property)[#]?.restart?.operational.limit | number | Maximum number or restarts to be attempted |
+| (property)[#]?.restart?.operational.window | number | Time period within which failures must happen for the limit to be considered crossed |
 
-### Result
-
-| Name | Type | Description |
-| :-------- | :-------- | :-------- |
-| result | null | Always null |
+> The *callsign* shall be passed as the index to the property, e.g. *Monitor.1.status@WebServer*. If omitted then all observed objects will be returned on read.
 
 ### Example
 
-#### Request
+#### Get Request
 
 ```json
 {
     "jsonrpc": "2.0", 
     "id": 1234567890, 
-    "method": "Monitor.1.restartlimits", 
-    "params": {
-        "callsign": "WebServer", 
-        "operationalrestartsettings": {
-            "limit": 3, 
-            "windowseconds": 60
-        }, 
-        "memoryrestartsettings": {
-            "limit": 3, 
-            "windowseconds": 60
-        }
-    }
+    "method": "Monitor.1.status@WebServer"
 }
 ```
-#### Response
+#### Get Response
 
 ```json
 {
     "jsonrpc": "2.0", 
     "id": 1234567890, 
-    "result": null
+    "result": [
+        {
+            "measurements": {
+                "resident": {
+                    "min": 0, 
+                    "max": 100, 
+                    "average": 50, 
+                    "last": 100
+                }, 
+                "allocated": {
+                    "min": 0, 
+                    "max": 100, 
+                    "average": 50, 
+                    "last": 100
+                }, 
+                "shared": {
+                    "min": 0, 
+                    "max": 100, 
+                    "average": 50, 
+                    "last": 100
+                }, 
+                "process": {
+                    "min": 0, 
+                    "max": 100, 
+                    "average": 50, 
+                    "last": 100
+                }, 
+                "operational": true, 
+                "count": 100
+            }, 
+            "observable": "callsign", 
+            "restart": {
+                "memory": {
+                    "limit": 3, 
+                    "window": 60
+                }, 
+                "operational": {
+                    "limit": 3, 
+                    "window": 60
+                }
+            }
+        }
+    ]
 }
 ```
 <a name="head.Notifications"></a>
 # Notifications
 
-Notifications are autonomous events, triggered by the internals of the plugin, and broadcasted via JSON-RPC to all registered observers. Refer to [[WPEF](#ref.WPEF)] for information on how to register for a notification.
+Notifications are autonomous events, triggered by the internals of the plugin, and broadcasted via JSON-RPC to all registered observers. Refer to [[Thunder](#ref.Thunder)] for information on how to register for a notification.
 
 The following events are provided by the Monitor plugin:
 
@@ -376,21 +387,21 @@ Monitor interface events:
 
 | Event | Description |
 | :-------- | :-------- |
-| [action](#event.action) | Signals action taken by the monitor |
+| [action](#event.action) | Signals an action taken by the Monitor |
 
 <a name="event.action"></a>
 ## *action <sup>event</sup>*
 
-Signals action taken by the monitor
+Signals an action taken by the Monitor.
 
 ### Parameters
 
 | Name | Type | Description |
 | :-------- | :-------- | :-------- |
 | params | object |  |
-| params.callsign | string | Callsign of the plugin the monitor acted upon |
-| params.action | string | The action executed by the monitor on a plugin. (must be one of the following: *Activate*, *Deactivate*, *StoppedRestarting*) |
-| params.reason | string | A message describing the reason the action was taken of |
+| params.callsign | string | Callsign of the service the Monitor acted upon |
+| params.action | string | The action executed by the Monitor on a service. One of: "Activate", "Deactivate", "StoppedRestarting" |
+| params.reason | string | A message describing the reason the action was taken |
 
 ### Example
 

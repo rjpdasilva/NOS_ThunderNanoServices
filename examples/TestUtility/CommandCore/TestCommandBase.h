@@ -1,6 +1,5 @@
 #include <interfaces/json/JsonData_TestUtility.h>
 #include "interfaces/ITestUtility.h"
-
 #include "../Module.h"
 
 namespace WPEFramework {
@@ -19,14 +18,29 @@ public:
         SignatureBuilder& operator=(const SignatureBuilder&) = delete;
 
     public:
-        explicit SignatureBuilder(const JsonData::TestUtility::InputInfo& returnParam)
+        explicit SignatureBuilder(string const& name, JsonData::TestUtility::InputInfo::TypeType type, string const& comment)
             : _jsonSignature()
         {
-            _jsonSignature.Output = returnParam;
+           	JsonData::TestUtility::InputInfo inputParam;
+			inputParam.Name = name;
+			inputParam.Type = type;
+			inputParam.Comment = comment;
+
+            _jsonSignature.Output = inputParam;
         }
 
-        SignatureBuilder& InputParameter(const JsonData::TestUtility::InputInfo& inputParam)
+        explicit SignatureBuilder(const JsonData::TestUtility::InputInfo& inputParam)
+                    : _jsonSignature()
+		{
+			_jsonSignature.Output = inputParam;
+		}
+
+        SignatureBuilder& InputParameter(const string& name, JsonData::TestUtility::InputInfo::TypeType type, const string& comment)
         {
+        	JsonData::TestUtility::InputInfo inputParam;
+        	inputParam.Name = name;
+        	inputParam.Type = type;
+        	inputParam.Comment = comment;
             _jsonSignature.Input.Add(inputParam);
 
             return (*this);
@@ -44,7 +58,7 @@ public:
             return outString;
         }
 
-        JsonData::TestUtility::ParametersResultData _jsonSignature;
+        JsonData::TestUtility::ParametersData _jsonSignature;
     };
 
     class DescriptionBuilder {
@@ -72,7 +86,7 @@ public:
             return outString;
         }
 
-        JsonData::TestUtility::DescriptionResultData _jsonDescription;
+        JsonData::TestUtility::DescriptionData _jsonDescription;
     };
 
 public:

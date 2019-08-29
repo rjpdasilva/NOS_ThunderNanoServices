@@ -6,7 +6,7 @@
 
 **Status: :black_circle::white_circle::white_circle:**
 
-Spark plugin for WPEFramework.
+Spark plugin for Thunder framework.
 
 ### Table of Contents
 
@@ -55,14 +55,14 @@ The table below provides and overview of terms and abbreviations used in this do
 | <a name="ref.HTTP">[HTTP](http://www.w3.org/Protocols)</a> | HTTP specification |
 | <a name="ref.JSON-RPC">[JSON-RPC](https://www.jsonrpc.org/specification)</a> | JSON-RPC 2.0 specification |
 | <a name="ref.JSON">[JSON](http://www.json.org/)</a> | JSON specification |
-| <a name="ref.WPEF">[WPEF](https://github.com/WebPlatformForEmbedded/WPEFramework/blob/master/doc/WPE%20-%20API%20-%20WPEFramework.docx)</a> | WPEFramework API Reference |
+| <a name="ref.Thunder">[Thunder](https://github.com/WebPlatformForEmbedded/Thunder/blob/master/doc/WPE%20-%20API%20-%20WPEFramework.docx)</a> | Thunder API Reference |
 
 <a name="head.Description"></a>
 # Description
 
 The Spark plugin provides web browsing functionality based on the Spark engine.
 
-The plugin is designed to be loaded and executed within the WPEFramework. For more information on WPEFramework refer to [[WPEF](#ref.WPEF)].
+The plugin is designed to be loaded and executed within the Thunder framework. For more information about the framework refer to [[Thunder](#ref.Thunder)].
 
 <a name="head.Configuration"></a>
 # Configuration
@@ -169,12 +169,6 @@ Also see: [visibilitychange](#event.visibilitychange)
 | :-------- | :-------- | :-------- |
 | (property) | string | Current browser visibility (must be one of the following: *visible*, *hidden*) |
 
-### Errors
-
-| Code | Message | Description |
-| :-------- | :-------- | :-------- |
-| 30 | ```ERROR_BAD_REQUEST``` | The property value is invalid |
-
 ### Example
 
 #### Get Request
@@ -260,12 +254,6 @@ Also see: [statechange](#event.statechange)
 | :-------- | :-------- | :-------- |
 | (property) | string | Running state of the service (must be one of the following: *resumed*, *suspended*) |
 
-### Errors
-
-| Code | Message | Description |
-| :-------- | :-------- | :-------- |
-| 30 | ```ERROR_BAD_REQUEST``` | The property value is invalid |
-
 ### Example
 
 #### Get Request
@@ -308,7 +296,7 @@ Also see: [statechange](#event.statechange)
 <a name="head.Notifications"></a>
 # Notifications
 
-Notifications are autonomous events, triggered by the internals of the plugin, and broadcasted via JSON-RPC to all registered observers. Refer to [[WPEF](#ref.WPEF)] for information on how to register for a notification.
+Notifications are autonomous events, triggered by the internals of the plugin, and broadcasted via JSON-RPC to all registered observers. Refer to [[Thunder](#ref.Thunder)] for information on how to register for a notification.
 
 The following events are provided by the Spark plugin:
 
@@ -329,7 +317,7 @@ StateControl interface events:
 <a name="event.urlchange"></a>
 ## *urlchange <sup>event</sup>*
 
-Signals a URL change in the browser
+Signals a URL change in the browser.
 
 ### Parameters
 
@@ -354,7 +342,7 @@ Signals a URL change in the browser
 <a name="event.visibilitychange"></a>
 ## *visibilitychange <sup>event</sup>*
 
-Signals a visibility change of the browser
+Signals a visibility change of the browser.
 
 ### Parameters
 
@@ -377,7 +365,7 @@ Signals a visibility change of the browser
 <a name="event.pageclosure"></a>
 ## *pageclosure <sup>event</sup>*
 
-Notifies that the web page requests to close its window
+Notifies that the web page requests to close its window.
 
 ### Parameters
 
@@ -394,7 +382,7 @@ This event carries no parameters.
 <a name="event.statechange"></a>
 ## *statechange <sup>event</sup>*
 
-Signals a state change of the service
+Signals a state change of the service.
 
 ### Parameters
 

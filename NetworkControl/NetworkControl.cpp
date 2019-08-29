@@ -62,6 +62,7 @@ namespace Plugin
         , _service(nullptr)
         , _responseTime(0)
         , _retries(0)
+        , _persistentStoragePath()
         , _dns()
         , _interfaces()
         , _dhcpInterfaces()
@@ -88,6 +89,8 @@ namespace Plugin
         _skipURL = static_cast<uint8_t>(service->WebPrefix().length());
         _responseTime = config.TimeOut.Value();
         _dnsFile = config.DNSFile.Value();
+
+        _persistentStoragePath = service->PersistentPath();
 
         // We will only "open" the DNS resolve file, so of ot does not exist yet, create an empty file.
         Core::File dnsFile(_dnsFile, true);
@@ -127,16 +130,16 @@ namespace Plugin
 
                     _dhcpInterfaces.emplace(std::piecewise_construct,
                         std::make_tuple(interfaceName),
-                        std::make_tuple(Core::ProxyType<DHCPEngine>::Create(this, interfaceName)));
+                        std::make_tuple(Core::ProxyType<DHCPEngine>::Create(this, interfaceName, _persistentStoragePath)));
                     _interfaces.emplace(std::piecewise_construct,
                         std::make_tuple(interfaceName),
                         std::make_tuple(index.Current()));
 
-                    JsonData::NetworkControl::NetworkResultData::ModeType how(index.Current().Mode);
-                    if (how == JsonData::NetworkControl::NetworkResultData::ModeType::MANUAL) {
+                    JsonData::NetworkControl::NetworkData::ModeType how(index.Current().Mode);
+                    if (how == JsonData::NetworkControl::NetworkData::ModeType::MANUAL) {
                         SYSLOG(Logging::Startup, (_T("Interface [%s] activated, no IP associated"), interfaceName.c_str()));
                     } else {
-                        if (how == JsonData::NetworkControl::NetworkResultData::ModeType::DYNAMIC) {
+                        if (how == JsonData::NetworkControl::NetworkData::ModeType::DYNAMIC) {
                             SYSLOG(Logging::Startup, (_T("Interface [%s] activated, DHCP request issued"), interfaceName.c_str()));
                             Reload(interfaceName, true);
                         } else {
@@ -158,7 +161,7 @@ namespace Plugin
                 if (_interfaces.find(interfaceName) == _interfaces.end()) {
                     _dhcpInterfaces.emplace(std::piecewise_construct,
                         std::make_tuple(interfaceName),
-                        std::make_tuple(Core::ProxyType<DHCPEngine>::Create(this, interfaceName)));
+                        std::make_tuple(Core::ProxyType<DHCPEngine>::Create(this, interfaceName, _persistentStoragePath)));
                     _interfaces.emplace(std::piecewise_construct,
                         std::make_tuple(interfaceName),
                         std::make_tuple(StaticInfo()));
@@ -282,7 +285,7 @@ namespace Plugin
 
                 bool reload = (index.Current() == _T("Reload"));
 
-                if (((reload == true) && (entry->second.Mode() != JsonData::NetworkControl::NetworkResultData::ModeType::STATIC)) || (index.Current() == _T("Request"))) {
+                if (((reload == true) && (entry->second.Mode() != JsonData::NetworkControl::NetworkData::ModeType::STATIC)) || (index.Current() == _T("Request"))) {
 
                     if (Reload(entry->first, true) == Core::ERROR_NONE) {
                         result->ErrorCode = Web::STATUS_OK;
@@ -291,7 +294,7 @@ namespace Plugin
                         result->ErrorCode = Web::STATUS_INTERNAL_SERVER_ERROR;
                         result->Message = "Could not activate the server";
                     }
-                } else if (((reload == true) && (entry->second.Mode() == JsonData::NetworkControl::NetworkResultData::ModeType::STATIC)) || (index.Current() == _T("Assign"))) {
+                } else if (((reload == true) && (entry->second.Mode() == JsonData::NetworkControl::NetworkData::ModeType::STATIC)) || (index.Current() == _T("Assign"))) {
 
                     if (Reload(entry->first, false) == Core::ERROR_NONE) {
                         result->ErrorCode = Web::STATUS_OK;
@@ -548,7 +551,6 @@ namespace Plugin
 
     void NetworkControl::Update(const string& interfaceName)
     {
-
         std::map<const string, Core::ProxyType<DHCPEngine>>::const_iterator entry(_dhcpInterfaces.find(interfaceName));
 
         if (entry != _dhcpInterfaces.end()) {
@@ -718,7 +720,7 @@ namespace Plugin
             if (_interfaces.find(interfaceName) == _interfaces.end()) {
                 _dhcpInterfaces.emplace(std::piecewise_construct,
                     std::make_tuple(interfaceName),
-                    std::make_tuple(Core::ProxyType<DHCPEngine>::Create(this, interfaceName)));
+                    std::make_tuple(Core::ProxyType<DHCPEngine>::Create(this, interfaceName, _persistentStoragePath)));
                 _interfaces.emplace(std::piecewise_construct,
                     std::make_tuple(interfaceName),
                     std::make_tuple(StaticInfo()));
@@ -736,9 +738,9 @@ namespace Plugin
 
                 if (index != _interfaces.end()) {
 
-                    JsonData::NetworkControl::NetworkResultData::ModeType how(index->second.Mode());
-                    if (how != JsonData::NetworkControl::NetworkResultData::ModeType::MANUAL) {
-                        Reload(interfaceName, how == JsonData::NetworkControl::NetworkResultData::ModeType::DYNAMIC);
+                    JsonData::NetworkControl::NetworkData::ModeType how(index->second.Mode());
+                    if (how != JsonData::NetworkControl::NetworkData::ModeType::MANUAL) {
+                        Reload(interfaceName, how == JsonData::NetworkControl::NetworkData::ModeType::DYNAMIC);
                     }
                 }
             }
