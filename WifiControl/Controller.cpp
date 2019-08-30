@@ -198,8 +198,14 @@ namespace WPASupplicant {
                 TRACE(Communication, (_T("Dispatch message: [%s]"), message.c_str()));
 
                 if ((event == CTRL_EVENT_CONNECTED) || (event == CTRL_EVENT_DISCONNECTED) || (event == WPS_AP_AVAILABLE)) {
+                     _adminLock.Lock();
                     _statusRequest.Event(event.Value());
-                    Submit(&_statusRequest);
+                    if (_statusRequest.Set() == true) {
+                        _adminLock.Unlock();
+                        Submit(&_statusRequest);
+                    } else {
+                        _adminLock.Unlock();
+                    }
                 } else if ((event.Value() == CTRL_EVENT_SCAN_RESULTS)) {
                     _adminLock.Lock();
                     if (_scanRequest.Set() == true) {
