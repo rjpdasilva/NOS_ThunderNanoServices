@@ -199,8 +199,8 @@ namespace WPASupplicant {
 
                 if ((event == CTRL_EVENT_CONNECTED) || (event == CTRL_EVENT_DISCONNECTED) || (event == WPS_AP_AVAILABLE)) {
                      _adminLock.Lock();
-                    _statusRequest.Event(event.Value());
                     if (_statusRequest.Set() == true) {
+                        _statusRequest.Event(event.Value());
                         _adminLock.Unlock();
                         Submit(&_statusRequest);
                     } else {
