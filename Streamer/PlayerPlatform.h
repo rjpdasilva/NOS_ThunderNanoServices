@@ -53,7 +53,7 @@ namespace Player {
             virtual int32_t Speed() const = 0;
             virtual const std::vector<int32_t>& Speeds() const = 0;
 
-            virtual void Position(const uint64_t absoluteTime) = 0;
+            virtual uint32_t Position(const uint64_t absoluteTime) = 0;
             virtual uint64_t Position() const = 0;
 
             virtual void TimeRange(uint64_t& begin, uint64_t& end) const = 0;

@@ -138,6 +138,7 @@ namespace Implementation {
             {
                  return _speeds;
             }
+
             uint32_t Speed(const int32_t request) override
             {
                 uint32_t result = Core::ERROR_UNAVAILABLE;
@@ -151,7 +152,7 @@ namespace Implementation {
 
                     result = Core::ERROR_NONE; // PLAYER_RESULT status =
 
-                    _player->SetSpeed(request);
+                    _player->Speed(request);
                     if (result == Core::ERROR_NONE) {
                         _speed = request;
                         if (_speed != 0) {
@@ -172,18 +173,26 @@ namespace Implementation {
 
                 return (result);
             }
+
             int32_t Speed() const  override
             {
                 return _speed;
             }
-            void Position(const uint64_t absoluteTime) override
+
+            uint32_t Position(const uint64_t position) override
             {
-                _absoluteTime = absoluteTime;
+                 uint32_t result = Core::ERROR_NONE;
+
+                result = _player->Position(position);
+
+                return (result);
             }
+
             uint64_t Position() const override
             {
                 return _absoluteTime;
             }
+
             void TimeRange(uint64_t& begin, uint64_t& end) const override
             {
                 begin = _begin;
