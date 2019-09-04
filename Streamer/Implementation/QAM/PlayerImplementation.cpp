@@ -176,7 +176,7 @@ namespace Implementation {
 
             int32_t Speed() const  override
             {
-                return _speed;
+                return _player->Speed();
             }
 
             uint32_t Position(const uint64_t position) override
@@ -190,7 +190,11 @@ namespace Implementation {
 
             uint64_t Position() const override
             {
-                return _absoluteTime;
+                uint64_t position;
+
+                position = _player->Position();
+
+                return position;
             }
 
             void TimeRange(uint64_t& begin, uint64_t& end) const override
