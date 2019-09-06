@@ -58,9 +58,9 @@ namespace Implementation {
             }
 
         public:
-            uint32_t Setup(const bool isPlayback) override
+            uint32_t Setup(uint8_t mode) override
             {
-                _player = Broadcast::ITuner::Create(Core::NumberType<uint8_t>(_index).Text(), isPlayback);
+                _player = Broadcast::ITuner::Create(Core::NumberType<uint8_t>(_index).Text(), mode);
                 if (_player != nullptr) {
                     _player->Callback(&_sink);
                 }

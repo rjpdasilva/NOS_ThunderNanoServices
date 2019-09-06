@@ -103,7 +103,7 @@ namespace Player {
             return (Core::ERROR_NONE);
         }
 
-        Exchange::IStream* Administrator::Acquire(Exchange::IStream::streamtype streamType, const bool isPlayback)
+        Exchange::IStream* Administrator::Acquire(Exchange::IStream::streamtype streamType, uint8_t mode)
         {
             Frontend* frontend = nullptr;
 
@@ -115,10 +115,8 @@ namespace Player {
             for (; it != _streamers.end(); ++it) {
                 ASSERT((*it).second != nullptr);
 
-                printf("streamType=%d type=%d isPlayback=%d\n", streamType, (*it).second->Type(), isPlayback);
-
                 if (((*it).second->Type() & streamType) != 0) {
-                    IPlayerPlatform* player = (*it).second->Create(isPlayback);
+                    IPlayerPlatform* player = (*it).second->Create(mode);
                     if (player != nullptr) {
                         frontend = new Frontend(this, player);
                         ASSERT(frontend != nullptr);

@@ -82,7 +82,7 @@ namespace Plugin {
 
         // IPlayer Interfaces
         virtual uint32_t Configure(PluginHost::IShell* service);
-        virtual Exchange::IStream* CreateStream(const Exchange::IStream::streamtype streamType, const bool isPlayback);
+        virtual Exchange::IStream* CreateStream(const Exchange::IStream::streamtype streamType, uint8_t mode);
         virtual string Recordings();
 
     private:

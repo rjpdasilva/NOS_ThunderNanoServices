@@ -210,7 +210,7 @@ namespace Plugin {
                 , Ids()
                 , RecordingId()
                 , Recordings()
-                , IsPlayback(false)
+                , Mode(0)
             {
                 Add(_T("url"), &Url);
                 Add(_T("x"), &X);
@@ -231,7 +231,7 @@ namespace Plugin {
                 Add(_T("ids"), &Ids);
                 Add(_T("recordingId"), &RecordingId);
                 Add(_T("recordings"), &Recordings);
-                Add(_T("isPlayback"), &IsPlayback);
+                Add(_T("mode"), &Mode);
             }
             ~Data()
             {
@@ -262,7 +262,7 @@ namespace Plugin {
             Core::JSON::String RecordingId;
             // XXX: for now use the internal struct
             Core::JSON::ArrayType<Broadcast::RecordingInfo> Recordings;
-            Core::JSON::Boolean IsPlayback;
+            Core::JSON::DecUInt8 Mode;
         };
 
     public:

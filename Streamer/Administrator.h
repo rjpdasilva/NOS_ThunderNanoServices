@@ -39,7 +39,7 @@ namespace Player {
             void Announce(const string& name, IPlayerPlatformFactory* factory);
             void Revoke(const string& name);
 
-            Exchange::IStream* Acquire(const Exchange::IStream::streamtype streamType, const bool isPlayback);
+            Exchange::IStream* Acquire(const Exchange::IStream::streamtype streamType, uint8_t mode);
             void Relinquish(IPlayerPlatform* player);
 
             uint8_t Allocate();
