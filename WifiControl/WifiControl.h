@@ -128,10 +128,12 @@ namespace Plugin {
                 : Connector(_T("/var/run/wpa_supplicant"))
                 , Interface(_T("wlan0"))
                 , Application(_T("/usr/sbin/wpa_supplicant"))
+                , BssExpirationAge(_T("180"))
             {
                 Add(_T("connector"), &Connector);
                 Add(_T("interface"), &Interface);
                 Add(_T("application"), &Application);
+                Add(_T("bssexpiration"), &BssExpirationAge);
             }
             virtual ~Config()
             {
@@ -141,6 +143,7 @@ namespace Plugin {
             Core::JSON::String Connector;
             Core::JSON::String Interface;
             Core::JSON::String Application;
+            Core::JSON::String BssExpirationAge;
         };
 
         static void FillNetworkInfo(const WPASupplicant::Network& info, JsonData::WifiControl::NetworkInfo& net)

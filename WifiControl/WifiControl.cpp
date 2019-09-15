@@ -63,7 +63,7 @@ namespace Plugin
         }
 
         if (result.empty() == true) {
-            _controller = WPASupplicant::Controller::Create(config.Connector.Value(), config.Interface.Value(), 10);
+            _controller = WPASupplicant::Controller::Create(config.Connector.Value(), config.Interface.Value(), config.BssExpirationAge.Value(), 10);
 
             if (_controller.IsValid() == true) {
                 if (_controller->IsOperational() == false) {

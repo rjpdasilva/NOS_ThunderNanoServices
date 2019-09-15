@@ -719,7 +719,7 @@ namespace WPASupplicant {
         typedef Core::StreamType<Core::SocketDatagram> BaseClass;
 
     protected:
-        Controller(const string& supplicantBase, const string& interfaceName, const uint16_t waitTime)
+        Controller(const string& supplicantBase, const string& interfaceName, const string& bssexpirationage, const uint16_t waitTime)
             : BaseClass(false, Core::NodeId(), Core::NodeId(), 512, 32768)
             , _adminLock()
             , _requests()
@@ -754,10 +754,7 @@ namespace WPASupplicant {
                     if ((exchange.Wait(MaxConnectionTime) == false) || (exchange.Response() != _T("OK"))) {
                         _error = Core::ERROR_COULD_NOT_SET_ADDRESS;
                     }
-                    else if (SetKey("bss_expiration_age", "180") != Core::ERROR_NONE) {
-                        _error = Core::ERROR_GENERAL;
-                    }
-                    else if (SetKey("autoscan", "periodic:120") != Core::ERROR_NONE) {
+                    else if (SetKey("bss_expiration_age", bssexpirationage.c_str()) != Core::ERROR_NONE) {
                         _error = Core::ERROR_GENERAL;
                     } else {
                         const bool set = _statusRequest.Set();
@@ -771,9 +768,9 @@ namespace WPASupplicant {
         }
 
     public:
-        static Core::ProxyType<Controller> Create(const string& supplicantBase, const string& interfaceName, const uint16_t waitTime)
+        static Core::ProxyType<Controller> Create(const string& supplicantBase, const string& interfaceName, const string& bssexpirationage, const uint16_t waitTime)
         {
-            return (Core::ProxyType<Controller>::Create(supplicantBase, interfaceName, waitTime));
+            return (Core::ProxyType<Controller>::Create(supplicantBase, interfaceName, bssexpirationage, waitTime));
         }
         virtual ~Controller()
         {
