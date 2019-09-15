@@ -57,12 +57,12 @@ namespace Plugin {
             }
 
         public:
-            uint32_t Lauch(const string& connector, const string& interfaceName, const uint16_t waitTime)
+            uint32_t Launch(const string& application, const string& connector, const string& interfaceName, const uint16_t waitTime)
             {
                 _interfaceName = interfaceName;
                 _connector = connector;
 
-                Core::Process::Options options(_T("/usr/sbin/wpa_supplicant"));
+                Core::Process::Options options(application);
                 /* interface name *mandatory */
                 options.Set(_T("-i") + _interfaceName);
 
@@ -105,6 +105,9 @@ namespace Plugin {
             {
                 _process.Kill(false);
                 _process.WaitProcessCompleted(1000);
+            }
+            inline bool WasStarted() const {
+                return _process.IsActive();
             }
 
         private:

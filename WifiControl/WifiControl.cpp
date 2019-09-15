@@ -57,7 +57,7 @@ namespace Plugin
         }
 #else
         if ((config.Application.Value().empty() == false) && (::strncmp(config.Application.Value().c_str(), _TXT("null")) != 0)) {
-            if (_wpaSupplicant.Lauch(config.Connector.Value(), config.Interface.Value(), 15) != Core::ERROR_NONE) {
+            if (_wpaSupplicant.Launch(config.Application.Value(), config.Connector.Value(), config.Interface.Value(), 15) != Core::ERROR_NONE) {
                 result = _T("Could not start WPA_SUPPLICANT");
             }
         }
@@ -106,10 +106,14 @@ namespace Plugin
     {
 #ifndef USE_WIFI_HAL
         _controller->Callback(nullptr);
-        _controller->Terminate();
+
+        if( _wpaSupplicant.WasStarted() == true ) {
+            _controller->Terminate(); 
+            _wpaSupplicant.Terminate(); 
+        }
+
         _controller.Release();
 
-        _wpaSupplicant.Terminate();
 #endif
 
         ASSERT(_service == service);
