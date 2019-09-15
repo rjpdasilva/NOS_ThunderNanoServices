@@ -238,14 +238,14 @@ namespace WPASupplicant {
                     if ((event == CTRL_EVENT_BSS_ADDED) && (_detailRequest.Set(bssid) == true)) {
                         // send out a request for detail.
                         Submit(&_detailRequest);
-                    } else if (event == CTRL_EVENT_BSS_REMOVED) {
-
-                        NetworkInfoContainer::iterator network(_networks.find(bssid));
-
-                        if (network != _networks.end()) {
-                            _networks.erase(network);
-                        }
                     }
+                    // else if (event == CTRL_EVENT_BSS_REMOVED) {
+                    //
+                    // Note: we do NOT process the BSS Removed. In case there is an active connection then within a certain set time
+                    //       all networks will be cleared, even if they are still in range. As in our use case (stationary situation)
+                    //       we will not throw them away. If you want a fresh list, start a new scan
+                    //
+                    //}
 
                     if (_callback != nullptr) {
                         _callback->Dispatch(event.Value());

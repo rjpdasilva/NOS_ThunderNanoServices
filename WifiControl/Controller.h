@@ -328,6 +328,8 @@ namespace WPASupplicant {
                     uint32_t marker = data.ForwardFind('\n');
                     uint32_t markerEnd = data.ForwardFind('\n', marker + 1);
 
+                    _parent.Clear();
+
                     while (marker != markerEnd) {
 
                         Core::TextFragment element(data, marker + 1, (markerEnd - marker - 1));
@@ -1594,6 +1596,9 @@ namespace WPASupplicant {
         }
         // These methods (add/add/update) are assumed to be running in a locked context.
         // Completion of requests are running in a locked context, so oke to update maps/lists
+        void Clear() {
+            _networks.clear();
+        };
         void Add(const uint64_t& bssid, const NetworkInfo& entry);
         void Add(const string& ssid, const bool current, const uint64_t& bssid);
         void Update(const string& status);
