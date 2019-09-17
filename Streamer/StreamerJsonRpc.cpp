@@ -21,6 +21,11 @@ namespace Plugin {
         Register<LoadParamsData,void>(_T("load"), &Streamer::endpoint_load, this);
         Register<IdInfo,void>(_T("attach"), &Streamer::endpoint_attach, this);
         Register<IdInfo,void>(_T("detach"), &Streamer::endpoint_detach, this);
+        Register<IdInfo,void>(_T("startRecord"), &Streamer::endpoint_startRecord, this);
+        Register<IdInfo,void>(_T("stopRecord"), &Streamer::endpoint_stopRecord, this);
+        Register<StartPlayParamsData,void>(_T("startPlay"), &Streamer::endpoint_startPlay, this);
+        Register<IdInfo,void>(_T("stopPlay"), &Streamer::endpoint_stopPlay, this);
+
         Property<Core::JSON::DecSInt32>(_T("speed"), &Streamer::get_speed, &Streamer::set_speed, this);
         Property<Core::JSON::DecUInt64>(_T("position"), &Streamer::get_position, &Streamer::set_position, this);
         Property<WindowData>(_T("window"), &Streamer::get_window, &Streamer::set_window, this);
@@ -39,6 +44,11 @@ namespace Plugin {
         Unregister(_T("load"));
         Unregister(_T("destroy"));
         Unregister(_T("create"));
+        Unregister(_T("startRecord"));
+        Unregister(_T("stopRecord"));
+        Unregister(_T("startPlay"));
+        Unregister(_T("stopPlay"));
+
         Unregister(_T("metadata"));
         Unregister(_T("state"));
         Unregister(_T("drm"));
@@ -64,7 +74,9 @@ namespace Plugin {
 
         if (params.Type.IsSet()) {
             const StreamType& streamType = params.Type.Value();
-            //const bool& isPlayback = params.IsPlayback.Value();
+            uint8_t mode = 0;
+
+            mode = params.Mode.Value(); // XXX: convert to enum
 
             uint8_t id = 0;
             for (; id < _streams.size(); ++id) {
@@ -76,7 +88,7 @@ namespace Plugin {
 
             if (id < MAX_STREAMS) {
                 Core::EnumerateType<JsonData::Streamer::StreamType> type(streamType);
-                Exchange::IStream* stream = _player->CreateStream(static_cast<const WPEFramework::Exchange::IStream::streamtype>(type.Value()), /* isPlayback */ 0);
+                Exchange::IStream* stream = _player->CreateStream(static_cast<const WPEFramework::Exchange::IStream::streamtype>(type.Value()), mode);
 
                 if (stream != nullptr) {
                     _streams.emplace(std::piecewise_construct, std::forward_as_tuple(id), std::forward_as_tuple(*this, id, stream));
@@ -132,6 +144,7 @@ namespace Plugin {
         const uint8_t& id = params.Id.Value();
         const string& location = params.Location.Value();
 
+        printf("location=%s\n", location.c_str());
         Streams::iterator stream = _streams.find(id);
         if (stream != _streams.end()) {
             if (((stream->second->State() == Exchange::IStream::Idle)
@@ -210,6 +223,121 @@ namespace Plugin {
             } else {
                 result = Core::ERROR_ILLEGAL_STATE;
             }
+        } else {
+            result = Core::ERROR_UNKNOWN_KEY;
+        }
+
+        return result;
+    }
+
+
+
+
+
+    // Method: startRecord - Start Recording
+    // Return codes:
+    //  - ERROR_NONE: Success
+    //  - ERROR_UNKNOWN_KEY: Unknown stream ID given
+    //  - ERROR_ILLEGAL_STATE: Stream is not in a valid state or decoder not attached
+    //  - ERROR_INPROGRESS: Decoder is in use
+    uint32_t Streamer::endpoint_startRecord(const IdInfo& params)
+    {
+        uint32_t result = Core::ERROR_NONE;
+        const uint8_t& id = params.Id.Value();
+
+        Streams::iterator stream = _streams.find(id);
+        if (stream != _streams.end()) {
+            Controls::iterator control = _controls.find(id);
+            if (control != _controls.end()) {
+                stream->second->StartRecord();
+            } else {
+                result = Core::ERROR_ILLEGAL_STATE;
+            }
+        } else {
+            result = Core::ERROR_UNKNOWN_KEY;
+        }
+
+        return result;
+    }
+
+    // Method: stopRecord - Stop Recording
+    // Return codes:
+    //  - ERROR_NONE: Success
+    //  - ERROR_UNKNOWN_KEY: Unknown stream ID given
+    //  - ERROR_ILLEGAL_STATE: Stream is not in a valid state or decoder not attached
+    //  - ERROR_INPROGRESS: Decoder is in use
+    uint32_t Streamer::endpoint_stopRecord(const IdInfo& params)
+    {
+        uint32_t result = Core::ERROR_NONE;
+        const uint8_t& id = params.Id.Value();
+
+        Streams::iterator stream = _streams.find(id);
+        if (stream != _streams.end()) {
+            Controls::iterator control = _controls.find(id);
+            if (control != _controls.end()) {
+                stream->second->StopRecord();
+            } else {
+                result = Core::ERROR_ILLEGAL_STATE;
+            }
+        } else {
+            result = Core::ERROR_UNKNOWN_KEY;
+        }
+
+        return result;
+    }
+
+    // Method: startPlay - Start Play
+    // Return codes:
+    //  - ERROR_NONE: Success
+    //  - ERROR_UNKNOWN_KEY: Unknown stream ID given
+    //  - ERROR_ILLEGAL_STATE: Stream is not in a valid state or decoder not attached
+    //  = ERROR_GENERAL - General Error, Playback failed
+    uint32_t Streamer::endpoint_startPlay(const StartPlayParamsData& params)
+    {
+        uint32_t result = Core::ERROR_NONE;
+        const uint8_t& id = params.Id.Value();
+        const string& recordingId = params.RecordingId.Value();
+
+        Streams::iterator stream = _streams.find(id);
+        if (stream != _streams.end()) {
+            result = stream->second->StartPlay(recordingId);
+
+            Controls::iterator control = _controls.find(id);
+            if (control != _controls.end()) {
+                Exchange::IStream::IControl* control = stream->second->Control();
+                if (control != nullptr) {
+                    _controls.emplace(std::piecewise_construct,
+                    std::forward_as_tuple(id),
+                    std::forward_as_tuple(*this, id, control));
+                }
+            } else {
+                result = Core::ERROR_ILLEGAL_STATE;
+            }
+        } else {
+            result = Core::ERROR_UNKNOWN_KEY;
+        }
+
+        return result;
+    }
+
+    // Method: stopPlay - Stop Play
+    // Return codes:
+    //  - ERROR_NONE: Success
+    //  - ERROR_UNKNOWN_KEY: Unknown stream ID given
+    //  - ERROR_ILLEGAL_STATE: Stream is not in a valid state or decoder not attached
+    uint32_t Streamer::endpoint_stopPlay(const IdInfo& params)
+    {
+        uint32_t result = Core::ERROR_NONE;
+        const uint8_t& id = params.Id.Value();
+
+        Streams::iterator stream = _streams.find(id);
+        if (stream != _streams.end()) {
+            //Controls::iterator control = _controls.find(id);
+            //if (control != _controls.end()) {
+                stream->second->StopPlay();
+            //} else {
+                result = Core::ERROR_ILLEGAL_STATE;
+            //}
         } else {
             result = Core::ERROR_UNKNOWN_KEY;
         }
