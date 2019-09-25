@@ -35,6 +35,7 @@ namespace Plugin {
         Property<Core::JSON::EnumType<DrmType>>(_T("drm"), &Streamer::get_drm, nullptr, this);
         Property<Core::JSON::EnumType<StateType>>(_T("state"), &Streamer::get_state, nullptr, this);
         Property<Core::JSON::String>(_T("metadata"), &Streamer::get_metadata, nullptr, this);
+        Property<Core::JSON::ArrayType<Broadcast::RecordingInfo>>(_T("recordings"), &Streamer::get_recordings, nullptr, this);
     }
 
     void Streamer::UnregisterAll()
@@ -303,7 +304,7 @@ namespace Plugin {
             result = stream->second->StartPlay(recordingId);
 
             Controls::iterator control = _controls.find(id);
-            if (control != _controls.end()) {
+            if (control == _controls.end()) {
                 Exchange::IStream::IControl* control = stream->second->Control();
                 if (control != nullptr) {
                     _controls.emplace(std::piecewise_construct,
@@ -341,6 +342,19 @@ namespace Plugin {
         } else {
             result = Core::ERROR_UNKNOWN_KEY;
         }
+
+        return result;
+    }
+
+    // Method: recordings - Recordings
+    // Return codes:
+    //  - ERROR_NONE: Success
+    uint32_t Streamer::get_recordings(const string& index, Core::JSON::ArrayType<Broadcast::RecordingInfo>& response) const
+    {
+        uint32_t result = Core::ERROR_NONE;
+
+        string str = _player->Recordings();
+        response.FromString(str);
 
         return result;
     }
