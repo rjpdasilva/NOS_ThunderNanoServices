@@ -231,10 +231,6 @@ namespace Plugin {
         return result;
     }
 
-
-
-
-
     // Method: startRecord - Start Recording
     // Return codes:
     //  - ERROR_NONE: Success
@@ -248,12 +244,7 @@ namespace Plugin {
 
         Streams::iterator stream = _streams.find(id);
         if (stream != _streams.end()) {
-            Controls::iterator control = _controls.find(id);
-            if (control != _controls.end()) {
-                stream->second->StartRecord();
-            } else {
-                result = Core::ERROR_ILLEGAL_STATE;
-            }
+            stream->second->StartRecord();
         } else {
             result = Core::ERROR_UNKNOWN_KEY;
         }
@@ -274,12 +265,7 @@ namespace Plugin {
 
         Streams::iterator stream = _streams.find(id);
         if (stream != _streams.end()) {
-            Controls::iterator control = _controls.find(id);
-            if (control != _controls.end()) {
-                stream->second->StopRecord();
-            } else {
-                result = Core::ERROR_ILLEGAL_STATE;
-            }
+            stream->second->StopRecord();
         } else {
             result = Core::ERROR_UNKNOWN_KEY;
         }
@@ -333,12 +319,7 @@ namespace Plugin {
 
         Streams::iterator stream = _streams.find(id);
         if (stream != _streams.end()) {
-            //Controls::iterator control = _controls.find(id);
-            //if (control != _controls.end()) {
-                stream->second->StopPlay();
-            //} else {
-                result = Core::ERROR_ILLEGAL_STATE;
-            //}
+            stream->second->StopPlay();
         } else {
             result = Core::ERROR_UNKNOWN_KEY;
         }

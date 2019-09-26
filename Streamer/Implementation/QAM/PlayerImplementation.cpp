@@ -297,6 +297,7 @@ namespace Implementation {
                 ASSERT(_player != nullptr);
 
                 result = _player->StopPlay();
+                _state = Exchange::IStream::Idle;
                 return (result);
             }
 
