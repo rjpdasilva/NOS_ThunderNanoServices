@@ -244,7 +244,7 @@ namespace Plugin {
 
         Streams::iterator stream = _streams.find(id);
         if (stream != _streams.end()) {
-            stream->second->StartRecord();
+            result = stream->second->StartRecord();
         } else {
             result = Core::ERROR_UNKNOWN_KEY;
         }
@@ -265,7 +265,7 @@ namespace Plugin {
 
         Streams::iterator stream = _streams.find(id);
         if (stream != _streams.end()) {
-            stream->second->StopRecord();
+            result = stream->second->StopRecord();
         } else {
             result = Core::ERROR_UNKNOWN_KEY;
         }
@@ -288,17 +288,18 @@ namespace Plugin {
         Streams::iterator stream = _streams.find(id);
         if (stream != _streams.end()) {
             result = stream->second->StartPlay(recordingId);
-
-            Controls::iterator control = _controls.find(id);
-            if (control == _controls.end()) {
-                Exchange::IStream::IControl* control = stream->second->Control();
-                if (control != nullptr) {
-                    _controls.emplace(std::piecewise_construct,
-                    std::forward_as_tuple(id),
-                    std::forward_as_tuple(*this, id, control));
+            if (result == Core::ERROR_NONE) {
+                Controls::iterator control = _controls.find(id);
+                if (control == _controls.end()) {
+                    Exchange::IStream::IControl* control = stream->second->Control();
+                    if (control != nullptr) {
+                        _controls.emplace(std::piecewise_construct,
+                        std::forward_as_tuple(id),
+                        std::forward_as_tuple(*this, id, control));
+                    }
+                } else {
+                    result = Core::ERROR_ILLEGAL_STATE;
                 }
-            } else {
-                result = Core::ERROR_ILLEGAL_STATE;
             }
         } else {
             result = Core::ERROR_UNKNOWN_KEY;
@@ -319,7 +320,7 @@ namespace Plugin {
 
         Streams::iterator stream = _streams.find(id);
         if (stream != _streams.end()) {
-            stream->second->StopPlay();
+            result = stream->second->StopPlay();
         } else {
             result = Core::ERROR_UNKNOWN_KEY;
         }

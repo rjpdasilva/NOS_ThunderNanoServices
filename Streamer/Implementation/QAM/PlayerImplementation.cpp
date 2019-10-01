@@ -285,8 +285,9 @@ namespace Implementation {
                 ASSERT(_player != nullptr);
 
                 result = _player->StartPlay(id);
-
-                _state = Exchange::IStream::Playing;
+                if (result == Core::ERROR_NONE) {
+                    _state = Exchange::IStream::Playing;
+                }
 
                 return (result);
             }
@@ -296,8 +297,11 @@ namespace Implementation {
 
                 ASSERT(_player != nullptr);
 
-                result = _player->StopPlay();
-                _state = Exchange::IStream::Idle;
+                if (_state == Exchange::IStream::Playing) {
+                    result = _player->StopPlay();
+                    _state = Exchange::IStream::Idle;
+                }
+
                 return (result);
             }
 
