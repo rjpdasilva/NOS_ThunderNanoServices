@@ -127,8 +127,11 @@ namespace Implementation {
                         _callback->StateChange(_state);
                     } else {
                         TRACE(Trace::Information, (_T("Tuning to ProgramNumber %d"), parser.ProgramNumber()));
-                        _player->Prepare(parser.ProgramNumber());
-                        _state = Exchange::IStream::Prepared;
+                        result = _player->Prepare(parser.ProgramNumber());
+                        if (result == Core::ERROR_NONE) {
+                            _state = Exchange::IStream::Prepared;
+                            _callback->StateChange(_state);
+                        }
                     }
                 }
 
@@ -297,7 +300,7 @@ namespace Implementation {
 
                 ASSERT(_player != nullptr);
 
-                if (_state == Exchange::IStream::Playing) {
+                if ((_state == Exchange::IStream::Playing) || (_state == Exchange::IStream::Paused)){
                     result = _player->StopPlay();
                     _state = Exchange::IStream::Idle;
                 }
@@ -334,7 +337,7 @@ namespace Implementation {
                 if ( (oldState != _state) && (_callback != nullptr)) {
                     _callback->StateChange(_state);
                 }
-                TRACE_L1("%s:%d state=%d oldState=%d", __FUNCTION__, __LINE__, _state, oldState);
+                TRACE_L1("%s:%d state=%d oldState=%d ITuner::state=%d", __FUNCTION__, __LINE__, _state, oldState, result);
 
             }
 

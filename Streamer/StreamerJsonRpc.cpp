@@ -10,7 +10,6 @@ namespace Plugin {
     const int MAX_STREAMS = 255;
 
     using namespace JsonData::Streamer;
-
     // Registration
     //
 
@@ -25,6 +24,7 @@ namespace Plugin {
         Register<IdInfo,void>(_T("stopRecord"), &Streamer::endpoint_stopRecord, this);
         Register<StartPlayParamsData,void>(_T("startPlay"), &Streamer::endpoint_startPlay, this);
         Register<IdInfo,void>(_T("stopPlay"), &Streamer::endpoint_stopPlay, this);
+        Register<IdInfo,RecordingsList>(_T("recordings"), &Streamer::endpoint_recordings, this);
 
         Property<Core::JSON::DecSInt32>(_T("speed"), &Streamer::get_speed, &Streamer::set_speed, this);
         Property<Core::JSON::DecUInt64>(_T("position"), &Streamer::get_position, &Streamer::set_position, this);
@@ -35,7 +35,6 @@ namespace Plugin {
         Property<Core::JSON::EnumType<DrmType>>(_T("drm"), &Streamer::get_drm, nullptr, this);
         Property<Core::JSON::EnumType<StateType>>(_T("state"), &Streamer::get_state, nullptr, this);
         Property<Core::JSON::String>(_T("metadata"), &Streamer::get_metadata, nullptr, this);
-        Property<Core::JSON::ArrayType<Broadcast::RecordingInfo>>(_T("recordings"), &Streamer::get_recordings, nullptr, this);
     }
 
     void Streamer::UnregisterAll()
@@ -331,7 +330,7 @@ namespace Plugin {
     // Method: recordings - Recordings
     // Return codes:
     //  - ERROR_NONE: Success
-    uint32_t Streamer::get_recordings(const string& index, Core::JSON::ArrayType<Broadcast::RecordingInfo>& response) const
+    uint32_t Streamer::endpoint_recordings(const IdInfo& params, RecordingsList& response)
     {
         uint32_t result = Core::ERROR_NONE;
 

@@ -7,6 +7,7 @@
 
 namespace WPEFramework {
 namespace Plugin {
+    typedef Core::JSON::ArrayType<Broadcast::RecordingInfo> RecordingsList;
 
     class Streamer : public PluginHost::IPlugin, public PluginHost::IWeb, public PluginHost::JSONRPC {
     private:
@@ -345,7 +346,8 @@ namespace Plugin {
             _service->Notify(_T("{ \"id\": ") +
                              Core::NumberType<uint8_t>(index).Text() +
                              _T(", \"stream\": \"") +
-                             Core::EnumerateType<Exchange::IStream::state>(state).Data() +
+                             //Core::EnumerateType<Exchange::IStream::state>(state).Data() +
+                             Core::EnumerateType<JsonData::Streamer::StateType>(state).Data() +
                              _T("\" }"));
             event_statechange(std::to_string(index), static_cast<JsonData::Streamer::StateType>(state));
         }
@@ -371,8 +373,8 @@ namespace Plugin {
         uint32_t endpoint_stopRecord (const JsonData::Streamer::IdInfo& params);
         uint32_t endpoint_startPlay (const JsonData::Streamer::StartPlayParamsData& params);
         uint32_t endpoint_stopPlay (const JsonData::Streamer::IdInfo& params);
+        uint32_t endpoint_recordings (const JsonData::Streamer::IdInfo& params, RecordingsList& response);
 
-        uint32_t get_recordings(const string& index, Core::JSON::ArrayType<Broadcast::RecordingInfo>& response) const;
         uint32_t get_speed(const string& index, Core::JSON::DecSInt32& response) const;
         uint32_t set_speed(const string& index, const Core::JSON::DecSInt32& param);
         uint32_t get_position(const string& index, Core::JSON::DecUInt64& response) const;
