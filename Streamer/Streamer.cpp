@@ -228,7 +228,8 @@ namespace Plugin {
                             result->ErrorCode = Web::STATUS_ACCEPTED;
                         }
                     } else if (index.Remainder() == _T("StartRecord")) {
-                        stream->second->StartRecord();
+                        std::string location = request.Body<const Data>()->Url.Value();
+                        stream->second->StartRecord(location);
                         result->Message = _T("Started");
                         result->ErrorCode = Web::STATUS_OK;
                     } else if (index.Remainder() == _T("StopRecord")) {

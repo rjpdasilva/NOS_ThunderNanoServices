@@ -99,7 +99,7 @@ namespace Implementation {
             {
                 return _index;
             }
-            uint32_t Load(const string& configuration) override
+            uint32_t Load(const string& location) override
             {
                 uint32_t result = Core::ERROR_UNAVAILABLE;
 
@@ -109,7 +109,7 @@ namespace Implementation {
 
                 if (_state != Exchange::IStream::Error) {
 
-                    Broadcast::Designator parser(configuration);
+                    Broadcast::Designator parser(location);
 
                     TRACE(Trace::Information, (_T("Tuning to %u MHz mode=%s sym=%d Annex=%s spectralMode=%s"),
                         parser.Frequency(),
@@ -263,24 +263,27 @@ namespace Implementation {
                 return (result);
             }
 
-            virtual uint32_t StartRecord()
+            virtual uint32_t StartRecord(const string& location)
             {
                 uint32_t result = Core::ERROR_NONE;
 
                 ASSERT(_player != nullptr);
+                // For now simply call Load
+                result = Load(location);
 
-                result = _player->StartRecord();
                 return (result);
             }
+
             virtual uint32_t StopRecord()
             {
                 uint32_t result = Core::ERROR_NONE;
 
                 ASSERT(_player != nullptr);
-
                 result = _player->StopRecord();
+
                 return (result);
             }
+
             virtual uint32_t StartPlay(const string& id)
             {
                 uint32_t result = Core::ERROR_NONE;
@@ -294,6 +297,7 @@ namespace Implementation {
 
                 return (result);
             }
+
             virtual uint32_t StopPlay()
             {
                 uint32_t result = Core::ERROR_NONE;

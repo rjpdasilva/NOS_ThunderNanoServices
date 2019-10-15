@@ -38,12 +38,12 @@ namespace Player {
             virtual Exchange::IStream::state State() const = 0;
             virtual uint8_t Index() const = 0;
 
-            virtual uint32_t Load(const string& uri) = 0;
+            virtual uint32_t Load(const string& location) = 0;
 
             virtual uint32_t AttachDecoder(const uint8_t index) = 0;
             virtual uint32_t DetachDecoder(const uint8_t index) = 0;
 
-            virtual uint32_t StartRecord() = 0;
+            virtual uint32_t StartRecord(const string& location) = 0;
             virtual uint32_t StopRecord() = 0;
 
             virtual uint32_t StartPlay(const string& id) = 0;

@@ -20,7 +20,7 @@ namespace Plugin {
         Register<LoadParamsData,void>(_T("load"), &Streamer::endpoint_load, this);
         Register<IdInfo,void>(_T("attach"), &Streamer::endpoint_attach, this);
         Register<IdInfo,void>(_T("detach"), &Streamer::endpoint_detach, this);
-        Register<IdInfo,void>(_T("startRecord"), &Streamer::endpoint_startRecord, this);
+        Register<LoadParamsData,void>(_T("startRecord"), &Streamer::endpoint_startRecord, this);
         Register<IdInfo,void>(_T("stopRecord"), &Streamer::endpoint_stopRecord, this);
         Register<StartPlayParamsData,void>(_T("startPlay"), &Streamer::endpoint_startPlay, this);
         Register<IdInfo,void>(_T("stopPlay"), &Streamer::endpoint_stopPlay, this);
@@ -236,14 +236,15 @@ namespace Plugin {
     //  - ERROR_UNKNOWN_KEY: Unknown stream ID given
     //  - ERROR_ILLEGAL_STATE: Stream is not in a valid state or decoder not attached
     //  - ERROR_INPROGRESS: Decoder is in use
-    uint32_t Streamer::endpoint_startRecord(const IdInfo& params)
+    uint32_t Streamer::endpoint_startRecord(const LoadParamsData& params)
     {
         uint32_t result = Core::ERROR_NONE;
         const uint8_t& id = params.Id.Value();
+        const string& location = params.Location.Value();
 
         Streams::iterator stream = _streams.find(id);
         if (stream != _streams.end()) {
-            result = stream->second->StartRecord();
+            result = stream->second->StartRecord(location);
         } else {
             result = Core::ERROR_UNKNOWN_KEY;
         }

@@ -302,21 +302,20 @@ namespace Player {
                 _adminLock.Unlock();
                 return (result);
             }
-            virtual uint32_t Load(const string& configuration)
+            virtual uint32_t Load(const string& location)
             {
                 _adminLock.Lock();
                 ASSERT(_player != nullptr);
-                uint32_t result = _player->Load(configuration);
+                uint32_t result = _player->Load(location);
                 _adminLock.Unlock();
                 return (result);
             }
 
-
-            virtual uint32_t StartRecord()
+            virtual uint32_t StartRecord(const string& location)
             {
                 _adminLock.Lock();
                 ASSERT(_player != nullptr);
-                uint32_t result = _player->StartRecord();
+                uint32_t result = _player->StartRecord(location);
                 _adminLock.Unlock();
                 return (result);
             }
@@ -346,7 +345,6 @@ namespace Player {
                 return (result);
 
             }
-
 
             virtual string Metadata() const
             {
