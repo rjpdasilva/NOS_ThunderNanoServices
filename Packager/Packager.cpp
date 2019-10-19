@@ -98,7 +98,7 @@ namespace {
                     Core::URL::Decode (name.c_str(), name.length(), version.data(), version.size());
                 }
 
-                status = _implementation->Install(package.data(), version.data(), arch.data());
+                status = _implementation->Install(package.data(), version.data(), arch.data(), false);
             } else if (index.Current().Text() == "SynchronizeRepository") {
                 status = _implementation->SynchronizeRepository();
             }

@@ -43,7 +43,7 @@ namespace {
         {
             Register<Params, void>(kInstallMethodName, [this](const Params& params) -> uint32_t {
                 return this->_implementation->Install(params.Package.Value(), params.Version.Value(),
-                                                                 params.Architecture.Value());
+                                                                 params.Architecture.Value(), false);
             });
             Register<void, void>(kSynchronizeMethodName, [this]() -> uint32_t {
                 return this->_implementation->SynchronizeRepository();

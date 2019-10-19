@@ -70,7 +70,7 @@ namespace Plugin {
             , _opkgInitialized(false)
             , _worker(this)
             , _isUpgrade(false)
-            , _isSyncing(false)
+            , _actitity(ActivityType::NONE)
         {
         }
 
@@ -84,7 +84,7 @@ namespace Plugin {
         void Register(Exchange::IPackager::INotification* observer) override;
         void Unregister(const Exchange::IPackager::INotification* observer) override;
         uint32_t Configure(PluginHost::IShell* service) override;
-        uint32_t Install(const string& name, const string& version, const string& arch) override;
+        uint32_t Install(const string& name, const string& version, const string& arch, bool downloadOnly) override;
         uint32_t SynchronizeRepository() override;
 
     private:
@@ -220,7 +220,7 @@ namespace Plugin {
             uint32_t Worker() override {
                 while(IsRunning() == true) {
                     _parent->_adminLock.Lock(); // The parent may have lock when this starts so wait for it to release.
-                    bool isInstall = _parent->_inProgress.Install != nullptr;
+                    bool isInstall = _parent->_actitity == ActivityType::INSTALL || _parent->_actitity == ActivityType::DOWNLOAD;
                     ASSERT(isInstall != true || _parent->_inProgress.Package != nullptr);
                     _parent->_adminLock.Unlock();
 
@@ -230,14 +230,15 @@ namespace Plugin {
                     if (isInstall)
                         _parent->BlockingInstallUntilCompletionNoLock();
 
-                    if (isInstall) {
-                        _parent->_adminLock.Lock();
+                    _parent->_adminLock.Lock();
+                    if (isInstall == true) {
                         _parent->_inProgress.Install->Release();
                         _parent->_inProgress.Package->Release();
                         _parent->_inProgress.Install = nullptr;
                         _parent->_inProgress.Package = nullptr;
-                        _parent->_adminLock.Unlock();
                     }
+                    _parent->_actitity = ActivityType::NONE;
+                    _parent->_adminLock.Unlock();
 
                     Block();
                 }
@@ -254,7 +255,14 @@ namespace Plugin {
             SETUP
         };
 
-        uint32_t DoWork(const string* name, const string* version, const string* arch);
+        enum class ActivityType {
+            NONE,
+            INSTALL,
+            REPO_SYNC,
+            DOWNLOAD
+        };
+
+        uint32_t DoWork(const string& name, const string& version, const string& arch, ActivityType type);
         void UpdateConfig() const;
 #if !defined (DO_NOT_USE_DEPRECATED_API)
         static void InstallationProgessNoLock(const _opkg_progress_data_t* progress, void* data);
@@ -280,7 +288,7 @@ namespace Plugin {
         InstallationData _inProgress;
         InstallThread _worker;
         bool _isUpgrade;
-        bool _isSyncing;
+        ActivityType _actitity;
     };
 
 }  // namespace Plugin

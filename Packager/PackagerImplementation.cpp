@@ -125,38 +125,39 @@ namespace Plugin {
         _adminLock.Unlock();
     }
 
-    uint32_t PackagerImplementation::Install(const string& name, const string& version, const string& arch)
+    uint32_t PackagerImplementation::Install(const string& name, const string& version, const string& arch, bool downloadOnly)
     {
-        return DoWork(&name, &version, &arch);
+        return DoWork(name, version, arch, downloadOnly ? ActivityType::DOWNLOAD : ActivityType::INSTALL);
     }
 
     uint32_t PackagerImplementation::SynchronizeRepository()
     {
-        return DoWork(nullptr, nullptr, nullptr);
+        string empty;
+        return DoWork(empty, empty, empty, ActivityType::REPO_SYNC);
     }
 
-    uint32_t PackagerImplementation::DoWork(const string* name, const string* version, const string* arch)
+    uint32_t PackagerImplementation::DoWork(const string& name, const string& version, const string& arch, ActivityType type)
     {
         uint32_t result = Core::ERROR_INPROGRESS;
 
         _adminLock.Lock();
-        if (_inProgress.Install == nullptr && _isSyncing == false) {
+        if (_actitity == ActivityType::NONE && type != ActivityType::NONE) {
             ASSERT(_inProgress.Package == nullptr);
             result = Core::ERROR_NONE;
             // OPKG bug: it marks it checked dependency for a package as cyclic dependency handling fix
-            // but since in our case it's not an process which dies when done, this info survives and makes the
-            // deps check to be skipped on subsequent calls. This is why hash_deinit() is called below
+            // but since in our case it's not a process which dies when done, this info survives and makes the
+            // deps check to be skipped on subsequent calls. This is why FreeOPKG() is called below
             // and needs to be initialized here agian.
             if (_opkgInitialized == true)  // it was initialized
                 FreeOPKG();
+            opkg_config->download_only = type == ActivityType::DOWNLOAD;
             _opkgInitialized = InitOPKG();
 
             if (_opkgInitialized) {
-                if (name && version && arch) {
-                    _inProgress.Package = Core::Service<PackageInfo>::Create<PackageInfo>(*name, *version, *arch);
+                _actitity = type;
+                if (type == ActivityType::INSTALL || type == ActivityType::DOWNLOAD) {
+                    _inProgress.Package = Core::Service<PackageInfo>::Create<PackageInfo>(name, version, arch);
                     _inProgress.Install = Core::Service<InstallInfo>::Create<InstallInfo>();
-                } else {
-                    _isSyncing = true;
                 }
                 _worker.Run();
             } else {
@@ -272,7 +273,6 @@ namespace Plugin {
     void PackagerImplementation::NotifyRepoSynced(uint32_t status)
     {
         _adminLock.Lock();
-        _isSyncing = false;
         for (auto* notification : _notifications) {
             notification->RepositorySynchronize(status);
         }
@@ -311,7 +311,7 @@ namespace Plugin {
                 }
             }
         }
-        ASSERT(mode == RepoSyncMode::SETUP || _isSyncing == true);
+        ASSERT(mode == RepoSyncMode::SETUP || _actitity == ActivityType::REPO_SYNC);
         if (containFiles == false) {
             uint32_t result = Core::ERROR_NONE;
 #if defined DO_NOT_USE_DEPRECATED_API
