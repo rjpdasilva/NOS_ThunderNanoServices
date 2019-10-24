@@ -202,7 +202,8 @@ namespace WPASupplicant {
         private:
             void SetSSID(const string& ssid)
             {
-                _hidden = (ssid[0] == '\0');
+                static constexpr const TCHAR* HIDDEN_SSID = "\\x00";
+                _hidden = (ssid.compare(0, strlen(HIDDEN_SSID), HIDDEN_SSID) == 0);
                 if (_hidden == false) {
                     _ssid = ssid;
                 }
