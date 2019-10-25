@@ -1,30 +1,56 @@
-#include "module.h"
+#include "Module.h"
 #include "interfaces/IRemoteInvocation.h"
-
 
 namespace WPEFramework {
 namespace Exchange {
 
-    struct RemoteInvocationImpl : public IRemoteInvocation {
+    class RemoteInvocationImpl : public IRemoteInvocation {
+    public:
+        virtual ~RemoteInvocationImpl() {}
 
-        enum { ID = ID_REMOTEINVOCATION };
+        WPEFramework::Core::IUnknown* Root(const string& callingMachine, const uint32_t waitTime, const string className, const uint32_t interface, const uint32_t version) override;
 
-        virtual ~RemoteInvocation() {}
-
-        Core::IUnknown* Root(const string& targetMachine, const uint32_t waitTime, const string className, const uint32_t interface, const uint32_t version) override;
+        BEGIN_INTERFACE_MAP(RemoteInvocationImpl)
+        INTERFACE_ENTRY(Exchange::IRemoteInvocation)
+        END_INTERFACE_MAP
     };
+
+    WPEFramework::Core::IUnknown* RemoteInvocationImpl::Root(const string& callingMachine, const uint32_t waitTime, const string className, const uint32_t interface, const uint32_t version) {
+        // Client code
+
+        Core::NodeId address(callingMachine.c_str());
+
+        PluginHost::IShell::ICOMLink* handler(COMLink());
+        void* result = nullptr;
+
+        // This method can only be used in the main process. Only this process, can instantiate a new process
+        ASSERT(handler != nullptr);
+
+        if (handler != nullptr) {
+            string locator(rootObject.Locator.Value());
+            if (locator.empty() == true) {
+                locator = Locator();
+            }
+
+            RPC::Object definition(Callsign(), locator,
+                className,
+                interface,
+                version,
+                rootObject.User.Value(),
+                rootObject.Group.Value(),
+                rootObject.Threads.Value(),
+                RPC::Object::HostType::DISTRIBUTED, 
+                rootObject.Configuration.Value(),
+                address);
+
+            uint32_t pid;
+            result = handler->Instantiate(definition, waitTime, pid, ClassName(), Callsign());
+
+            return (result);
+        }
+    }
+
+    SERVICE_REGISTRATION(RemoteInvocationImpl, 1, 0);
 }
 }
 
-Core::IUnknown* RemoteInvocationImpl::Root(const string& targetMachine, const uint32_t waitTime, const string className, const uint32_t interface, const uint32_t version) {
-    // Client code
-    Core::NodeID address(targetMachine.c_str());
-    address.Port(28912);
-
-    auto client = Core::ProxyType<RPC::CommunicatorClient>::Create(address);
-    Core::IUnknown* result = client->Open<OCDM::IAccessorOCDM>(_T("OpenCDMImplementation"));
-
-    client->Release();
-
-    return result;
-}

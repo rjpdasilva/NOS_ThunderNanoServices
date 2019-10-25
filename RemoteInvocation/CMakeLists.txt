@@ -6,6 +6,7 @@ find_package(${NAMESPACE}Definitions REQUIRED)
 
 add_library(${MODULE_NAME} SHARED
     RemoteInvocation.cpp
+    # RemoteInvocationImpl.cpp
     Module.cpp)
 
 set_target_properties(${MODULE_NAME} PROPERTIES
