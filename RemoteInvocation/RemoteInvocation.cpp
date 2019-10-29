@@ -8,10 +8,13 @@ namespace Plugin {
 
     const string RemoteInvocation::Initialize(PluginHost::IShell* service) 
     {
-        // Normal code
+        Config config;
+        config.FromString(service->ConfigLine());
+
+        Core::NodeId serverAddress(config.Address.Value().c_str());
+
         Core::ProxyType<RPC::InvokeServer> server = Core::ProxyType<RPC::InvokeServer>::Create(&Core::WorkerPool::Instance());
-        Core::NodeId address("0.0.0.0:5797");
-        _extService = new ExternalAccess(address, service, server, this);
+        _extService = new ExternalAccess(serverAddress, service, server, this);
 
         _service = service;
 
@@ -36,6 +39,10 @@ namespace Plugin {
     void RemoteInvocation::Start(const string callingDevice, const Exchange::IRemoteInvocation::ProgramParams& params) {
         Core::Process::Options options("WPEProcess");
 
+        //auto ptr = this;
+
+       // string test = _extService->Connection(params.id)->Source();
+        
         options[_T("-C")] = params.callsign;
         options[_T("-l")] = params.locator;
         options[_T("-c")] = params.className;
@@ -45,9 +52,8 @@ namespace Plugin {
         options[_T("-x")] = Core::NumberType<uint32_t>(params.id).Text();
         options[_T("-V")] = Core::NumberType<uint32_t>(params.version).Text();
         options[_T("-p")] = _service->PersistentPath();
-        options[_T("-s")] = "/home/mipo57/Pulpit/metrological/scripts/local/staging/usr/lib/wpeframework/plugins";
+        options[_T("-s")] = _service->SystemPath();
         options[_T("-d")] = _service->DataPath();
-        //options[_T("-a")] = _service->;
         options[_T("-v")] = _service->VolatilePath();
         options[_T("-m")] = _service->DataPath();
         options[_T("-t")] = Core::NumberType<uint8_t>(params.threads).Text();

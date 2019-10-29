@@ -11,6 +11,28 @@ namespace Plugin {
 
     class RemoteInvocation : public PluginHost::IPlugin, public Exchange::IRemoteInvocation {
     public:
+
+        class Config : public Core::JSON::Container {
+        private:
+            Config(const Config&) = delete;
+            Config& operator=(const Config&) = delete;
+
+        public:
+            Config()
+                : Core::JSON::Container()
+                , Address("0.0.0.0:9238")
+            {
+                Add(_T("address"), &Address);
+            }
+
+            ~Config()
+            {
+            }
+
+        public:
+            Core::JSON::String Address;
+        };
+
         class ExternalAccess : public RPC::Communicator {
         private:
             ExternalAccess() = delete;
@@ -38,12 +60,9 @@ namespace Plugin {
         private:
             virtual void* Aquire(const string& className, const uint32_t interfaceId, const uint32_t versionId)
             {
-                void* result = nullptr;
-                uint32_t pid;
-                //result = _service->Root(pid, Core::infinite, className, interfaceId, versionId);
                 _parent->AddRef();
 
-                return (_parent->QueryInterface(Exchange::IRemoteInvocation::ID));
+                return _parent->QueryInterface(Exchange::IRemoteInvocation::ID);
             }
 
             PluginHost::IShell* _service;
