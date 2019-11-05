@@ -1,7 +1,7 @@
 #pragma once 
 
 #ifndef MODULE_NAME
-#define MODULE_NAME Plugin_RemoteInvocation
+#define MODULE_NAME Plugin_RemoteInvocationPlugin
 #endif
 
 #include <plugins/plugins.h>

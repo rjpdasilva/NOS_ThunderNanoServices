@@ -6,21 +6,26 @@ namespace Exchange {
 
     class MinimalPluginImpl : public IMinimalPlugin {
     public:
-        virtual ~MinimalPluginImpl() {}
+        virtual ~MinimalPluginImpl() {
+            printf("### Minimal plugin destructor called!\n");
+        }
 
-        string Greet(const string& name) override;
+        uint32_t Greet(const string& name, string& greeting);
 
         BEGIN_INTERFACE_MAP(MinimalPluginImpl)
         INTERFACE_ENTRY(Exchange::IMinimalPlugin)
         END_INTERFACE_MAP
     };
 
-    string MinimalPluginImpl::Greet(const string& name) {
-        string str = "Hello ";
-        str += name;
+    uint32_t MinimalPluginImpl::Greet(const string& name, string& greeting) {
+        greeting = "Hello ";
+        greeting += name;
 
-        return str;
+        // SleepS(1000);
+
+        return Core::ERROR_NONE;
     }
+
     
     SERVICE_REGISTRATION(MinimalPluginImpl, 1, 0);
 }

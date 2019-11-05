@@ -10,15 +10,21 @@ namespace Plugin {
     {
         string result;
 
-        uint32_t pid;
-        Exchange::IMinimalPlugin* _implementation = (WPEFramework::Exchange::IMinimalPlugin*)service->Root("127.0.0.1:7889", pid, Core::infinite, "MinimalPluginImpl", Exchange::IMinimalPlugin::ID, ~0);
+        uint32_t connectionId;
+
+        auto _implementation = service->Root<Exchange::IMinimalPlugin>(connectionId, 2000, "MinimalPluginImpl", ~0, "127.0.0.1:5797");
 
         if (_implementation != nullptr) {
-            string result = _implementation->Greet("Patric");
+            string result;
+            if (_implementation->Greet("Patrick", result) != Core::ERROR_NONE) {
+                printf("COnnection failed!\n");
+            }
             TRACE_L1("Message to you: %s", result.c_str());
         } else {
             TRACE_L1("Failed to start MinimalPlugin implementaiton");
         }
+
+        _implementation->Release();
 
         return result;
     }

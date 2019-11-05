@@ -9,7 +9,7 @@
 namespace WPEFramework {
 namespace Plugin {
 
-    class RemoteInvocation : public PluginHost::IPlugin, public Exchange::IRemoteInvocation {
+    class RemoteInvocationPlugin : public PluginHost::IPlugin {
     public:
 
         class Config : public Core::JSON::Container {
@@ -33,6 +33,56 @@ namespace Plugin {
             Core::JSON::String Address;
         };
 
+        class RemoteInvocation : public Exchange::IRemoteInvocation {
+        private:
+            RemoteInvocation(const RemoteInvocation&) = delete;
+            RemoteInvocation& operator=(const RemoteInvocation&) = delete;
+
+        public:
+            RemoteInvocation(const string& remoteId, PluginHost::IShell* service)
+                : _remoteId(remoteId)
+                , _service(service)
+                , _refCount(1)
+            {
+            }
+
+            void AddRef() const override {
+                _refCount++;
+
+                printf("### Remote invocation refcount increased to %d\n", _refCount);
+            };
+            uint32_t Release() const override {
+                _refCount--;
+
+                printf("### Remote invocation refcount decreased to %d\n", _refCount);
+
+                if (_refCount <= 0) {
+                    delete this;
+                }
+
+                return 0;
+            };
+
+            virtual ~RemoteInvocation()
+            {
+            }
+
+            BEGIN_INTERFACE_MAP(RemoteInvocation)
+            INTERFACE_ENTRY(Exchange::IRemoteInvocation)
+            END_INTERFACE_MAP
+
+            //   IRemoteInvocaiton methonds
+            // --------------------------------------------------------------------------------------------------------
+            uint32_t Instantiate(const uint16_t port, const Exchange::IRemoteInvocation::ProgramParams& params) override;
+            uint32_t Terminate(uint32_t connectionId) override;
+
+        private:
+            string _remoteId;
+            PluginHost::IShell* _service;
+            mutable uint32_t _refCount;
+        };
+
+
         class ExternalAccess : public RPC::Communicator {
         private:
             ExternalAccess() = delete;
@@ -43,11 +93,9 @@ namespace Plugin {
             ExternalAccess(
                 const Core::NodeId& source, 
                 PluginHost::IShell* service,
-                const Core::ProxyType<RPC::InvokeServer> & engine,
-                RemoteInvocation* parent)
+                const Core::ProxyType<RPC::InvokeServer> & engine)
                 : RPC::Communicator(source, _T(""), Core::ProxyType<Core::IIPCServer>(engine))
                 , _service(service)
-                , _parent(parent)
             {
                 engine->Announcements(Announcement());
                 Open(Core::infinite);
@@ -58,31 +106,36 @@ namespace Plugin {
             }
 
         private:
-            virtual void* Aquire(const string& className, const uint32_t interfaceId, const uint32_t versionId)
+            virtual void* Aquire(uint32_t id, const string& className, const uint32_t interfaceId, const uint32_t versionId)
             {
-                _parent->AddRef();
+                void* result = nullptr;
 
-                return _parent->QueryInterface(Exchange::IRemoteInvocation::ID);
+                if (interfaceId == Exchange::IRemoteInvocation::ID) {
+                    auto invocator = Core::ProxyType<RemoteInvocation>::Create(Connection(id)->RemoteId(), _service);
+                    invocator->AddRef();
+
+                    result = new RemoteInvocation(Connection(id)->RemoteId(), _service);
+                }
+
+                return result;
             }
 
             PluginHost::IShell* _service;
-            RemoteInvocation* _parent;
         };
 
-        RemoteInvocation(const RemoteInvocation&) = delete;
-        RemoteInvocation& operator=(const RemoteInvocation&) = delete;
+        RemoteInvocationPlugin(const RemoteInvocationPlugin&) = delete;
+        RemoteInvocationPlugin& operator=(const RemoteInvocationPlugin&) = delete;
 
-        RemoteInvocation()
+        RemoteInvocationPlugin()
         {
         }
 
-        virtual ~RemoteInvocation()
+        virtual ~RemoteInvocationPlugin()
         {
         }
 
-        BEGIN_INTERFACE_MAP(RemoteInvocation)
+        BEGIN_INTERFACE_MAP(RemoteInvocationPlugin)
             INTERFACE_ENTRY(PluginHost::IPlugin)
-            INTERFACE_ENTRY(Exchange::IRemoteInvocation)
         END_INTERFACE_MAP
 
     public:
@@ -91,15 +144,8 @@ namespace Plugin {
         virtual const string Initialize(PluginHost::IShell* service) override;
         virtual void Deinitialize(PluginHost::IShell* service) override;
         virtual string Information() const override;
-
-        //   IRemoteInvocaiton methonds
-        // --------------------------------------------------------------------------------------------------------
-        void Start(const string callingDevice, const Exchange::IRemoteInvocation::ProgramParams& params) override;
-
     public:
-        PluginHost::IShell* _service;
         ExternalAccess* _extService;
-        Exchange::IRemoteInvocation* _implementation;
     };
 
 } // namespace Plugin
