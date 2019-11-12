@@ -9,7 +9,7 @@
 namespace WPEFramework {
 namespace Plugin {
 
-    class RemoteInvocationPlugin : public PluginHost::IPlugin {
+    class RemoteInvocation : public PluginHost::IPlugin {
     public:
 
         class Config : public Core::JSON::Container {
@@ -33,13 +33,13 @@ namespace Plugin {
             Core::JSON::String Address;
         };
 
-        class RemoteInvocation : public Exchange::IRemoteInvocation {
+        class Invocator : public Exchange::IRemoteInvocation {
         private:
-            RemoteInvocation(const RemoteInvocation&) = delete;
-            RemoteInvocation& operator=(const RemoteInvocation&) = delete;
+            Invocator(const Invocator&) = delete;
+            Invocator& operator=(const Invocator&) = delete;
 
         public:
-            RemoteInvocation(const string& remoteId, PluginHost::IShell* service)
+            Invocator(const string& remoteId, PluginHost::IShell* service)
                 : _remoteId(remoteId)
                 , _service(service)
                 , _refCount(1)
@@ -58,16 +58,17 @@ namespace Plugin {
 
                 if (_refCount <= 0) {
                     delete this;
+                    return Core::ERROR_DESTRUCTION_SUCCEEDED;
                 }
 
-                return 0;
+                return Core::ERROR_NONE;
             };
 
-            virtual ~RemoteInvocation()
+            virtual ~Invocator()
             {
             }
 
-            BEGIN_INTERFACE_MAP(RemoteInvocation)
+            BEGIN_INTERFACE_MAP(Invocator)
             INTERFACE_ENTRY(Exchange::IRemoteInvocation)
             END_INTERFACE_MAP
 
@@ -111,10 +112,7 @@ namespace Plugin {
                 void* result = nullptr;
 
                 if (interfaceId == Exchange::IRemoteInvocation::ID) {
-                    auto invocator = Core::ProxyType<RemoteInvocation>::Create(Connection(id)->RemoteId(), _service);
-                    invocator->AddRef();
-
-                    result = new RemoteInvocation(Connection(id)->RemoteId(), _service);
+                    result = new Invocator(Connection(id)->RemoteId(), _service);
                 }
 
                 return result;
@@ -123,18 +121,19 @@ namespace Plugin {
             PluginHost::IShell* _service;
         };
 
-        RemoteInvocationPlugin(const RemoteInvocationPlugin&) = delete;
-        RemoteInvocationPlugin& operator=(const RemoteInvocationPlugin&) = delete;
+        RemoteInvocation(const RemoteInvocation&) = delete;
+        RemoteInvocation& operator=(const RemoteInvocation&) = delete;
 
-        RemoteInvocationPlugin()
+        RemoteInvocation()
         {
         }
 
-        virtual ~RemoteInvocationPlugin()
+        virtual ~RemoteInvocation()
         {
+            printf("################ Remote invocation destructor called!\n");
         }
 
-        BEGIN_INTERFACE_MAP(RemoteInvocationPlugin)
+        BEGIN_INTERFACE_MAP(RemoteInvocation)
             INTERFACE_ENTRY(PluginHost::IPlugin)
         END_INTERFACE_MAP
 

@@ -1,25 +1,25 @@
 #pragma once
 
 #include "Module.h"
-#include "interfaces/IMinimalPlugin.h"
+#include "interfaces/IRemoteHostExample.h"
 
 namespace WPEFramework {
 namespace Plugin {
 
-    class MinimalPlugin : public PluginHost::IPlugin {
+    class RemoteHostExample : public PluginHost::IPlugin {
     public:
-        MinimalPlugin(const MinimalPlugin&) = delete;
-        MinimalPlugin& operator=(const MinimalPlugin&) = delete;
+        RemoteHostExample(const RemoteHostExample&) = delete;
+        RemoteHostExample& operator=(const RemoteHostExample&) = delete;
 
-        MinimalPlugin()
+        RemoteHostExample()
         {
         }
 
-        virtual ~MinimalPlugin()
+        virtual ~RemoteHostExample()
         {
         }
 
-        BEGIN_INTERFACE_MAP(MinimalPlugin)
+        BEGIN_INTERFACE_MAP(RemoteHostExample)
             INTERFACE_ENTRY(PluginHost::IPlugin)
         END_INTERFACE_MAP
 
@@ -31,7 +31,7 @@ namespace Plugin {
         virtual string Information() const override;
 
     private:
-        Exchange::IMinimalPlugin* _implementation;
+        Exchange::IRemoteHostExample* _implementation;
     };
 
 } // namespace Plugin

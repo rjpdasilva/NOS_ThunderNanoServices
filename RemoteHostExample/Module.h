@@ -1,7 +1,7 @@
 #pragma once 
 
 #ifndef MODULE_NAME
-#define MODULE_NAME Plugin_MinimalPlugin
+#define MODULE_NAME Plugin_RemoteHostExample
 #endif
 
 #include <plugins/plugins.h>

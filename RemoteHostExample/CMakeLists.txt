@@ -1,12 +1,12 @@
-set(PLUGIN_NAME MinimalPlugin)
+set(PLUGIN_NAME RemoteHostExample)
 set(MODULE_NAME ${NAMESPACE}${PLUGIN_NAME})
 
 find_package(${NAMESPACE}Plugins REQUIRED)
 find_package(${NAMESPACE}Definitions REQUIRED)
 
 add_library(${MODULE_NAME} SHARED
-    MinimalPlugin.cpp
-    MinimalPluginImpl.cpp
+    RemoteHostExample.cpp
+    RemoteHostExampleImpl.cpp
     Module.cpp)
 
 set_target_properties(${MODULE_NAME} PROPERTIES

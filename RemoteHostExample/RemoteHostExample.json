@@ -1,0 +1,10 @@
+{
+ "locator":"libWPEFrameworkRemoteHostExample.so",
+ "classname":"RemoteHostExample",
+ "autostart":false,
+ "configuration":{
+  "root":{
+   "outofprocess":true
+  }
+ }
+}

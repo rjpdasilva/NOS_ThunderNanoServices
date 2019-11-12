@@ -1,6 +1,6 @@
 {
  "locator":"libWPEFrameworkRemoteInvocation.so",
- "classname":"RemoteInvocationPlugin",
+ "classname":"RemoteInvocation",
  "autostart":false,
  "configuration":{
   "root":{

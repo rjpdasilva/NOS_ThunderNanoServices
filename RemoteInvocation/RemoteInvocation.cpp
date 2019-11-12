@@ -1,14 +1,15 @@
 #include "RemoteInvocation.h"
 #include "plugins/IShell.h"
+#include "interfaces/IRemoteHost.h"
 
 namespace WPEFramework {
 namespace Plugin {
 
-    SERVICE_REGISTRATION(RemoteInvocationPlugin, 1, 0);
+    SERVICE_REGISTRATION(RemoteInvocation, 1, 0);
 
     static std::map<uint32_t, uint32_t> connectionPidMap;
 
-    const string RemoteInvocationPlugin::Initialize(PluginHost::IShell* service) 
+    const string RemoteInvocation::Initialize(PluginHost::IShell* service) 
     {
         Config config;
         config.FromString(service->ConfigLine());
@@ -21,7 +22,7 @@ namespace Plugin {
         return (string());
     }
 
-    void RemoteInvocationPlugin::Deinitialize(PluginHost::IShell* service) 
+    void RemoteInvocation::Deinitialize(PluginHost::IShell* service) 
     {   
         if (_extService != nullptr) {
             delete _extService;
@@ -29,53 +30,56 @@ namespace Plugin {
         }
     }
 
-    string RemoteInvocationPlugin::Information() const 
+    string RemoteInvocation::Information() const 
     {
         return (string());
     }
 
-    uint32_t RemoteInvocationPlugin::RemoteInvocation::Instantiate(const uint16_t port, const Exchange::IRemoteInvocation::ProgramParams& params)
-    { 
-        uint32_t result = Core::ERROR_GENERAL;
+    uint32_t RemoteInvocation::Invocator::Instantiate(const uint16_t port, const Exchange::IRemoteInvocation::ProgramParams& params)
+    {
+        uint32_t result = Core::ERROR_NONE;
 
-        Core::Process::Options options("WPEProcess");
-        // Very ugly hack :(
-        auto switchCallsing = [](const string& serv, string callsign) {return serv.substr(0, serv.find_last_of('/', serv.length() - 2)) + "/" + callsign + "/";};
-        string persistentPath = switchCallsing(_service->PersistentPath(), params.callsign);
-        string datapath = switchCallsing(_service->DataPath(), params.callsign);
-        string volatilepath = switchCallsing(_service->VolatilePath(), params.callsign);
+        PluginHost::IShell::ICOMLink* handler(_service->COMLink());
+        uint32_t _cid;
 
-        string proxypath = _service->ProxyStubPath();
-        string systemPath = _service->SystemPath();
+        string remoteAddress = Core::NodeId(_remoteId.c_str()).HostAddress() + ":" + std::to_string(port);
 
-        Core::NodeId address(_remoteId.c_str());
+        RPC::Object definition(params.callsign, params.locator,
+            params.className,
+            params.id,
+            params.interface,
+            params.version,
+            "",
+            "",
+            params.threads,
+            RPC::Object::HostType::LOCAL, 
+            remoteAddress,
+            "");
 
-        options[_T("-C")] = params.callsign;
-        options[_T("-l")] = params.locator;
-        options[_T("-c")] = params.className;
-        options[_T("-r")] = address.HostAddress() + ":" + std::to_string(port);
-        options[_T("-i")] = Core::NumberType<uint32_t>(params.interface).Text();
-        options[_T("-e")] = Core::NumberType<uint32_t>(params.logging).Text();
-        options[_T("-x")] = Core::NumberType<uint32_t>(params.id).Text();
-        options[_T("-V")] = Core::NumberType<uint32_t>(params.version).Text();
-        options[_T("-p")] = persistentPath;
-        options[_T("-s")] = systemPath;
-        options[_T("-d")] = datapath;
-        options[_T("-v")] = volatilepath;
-        options[_T("-m")] = proxypath;
-        options[_T("-t")] = Core::NumberType<uint8_t>(params.threads).Text();
+        auto plugin = reinterpret_cast<Core::IUnknown*>(handler->Instantiate(definition, Core::infinite, _cid, params.className, params.callsign));
 
-        // TODO: Revisit lifetime of a process
-        uint32_t _pid;
-        Core::Process fork(false);
-        result = fork.Launch(options, &_pid);
+        if (plugin != nullptr) {
+            auto remotePlugin = plugin->QueryInterface<Exchange::IRemoteHost>();
+            
+            if (remotePlugin != nullptr) {
+                if (remotePlugin->SetLocalShell(_service) != Core::ERROR_NONE) {
+                    TRACE_L1("Error occurred while trying to set local shell to %s", params.className.c_str());
+                } 
+                else if(remotePlugin->Connect(remoteAddress, params.interface, params.id) != Core::ERROR_NONE) {
+                    TRACE_L1("Error occurred while trying to connect %s to %s", params.className.c_str(), remoteAddress.c_str());
+                }
+            } else {
+                result = Core::ERROR_BAD_REQUEST;
+                TRACE_L1("Failed to get IremoteHost interface from %s plugin. It is required for remote invocation!", params.className.c_str());
+            }
 
-        connectionPidMap.insert(std::pair(params.id, _pid));
-
+            plugin->Release();
+        }
+        
         return result;
     }
 
-    uint32_t RemoteInvocationPlugin::RemoteInvocation::Terminate(uint32_t connectionId) {
+    uint32_t RemoteInvocation::Invocator::Terminate(uint32_t connectionId) {
         auto foundPid = connectionPidMap.find(connectionId);
 
         if (foundPid != connectionPidMap.end()) {
@@ -83,6 +87,7 @@ namespace Plugin {
 
             // TODO: Add trying gently first
             process.Kill(true);
+            process.WaitProcessCompleted(Core::infinite);
             connectionPidMap.erase(foundPid);
         }
 
