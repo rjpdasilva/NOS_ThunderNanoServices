@@ -101,13 +101,12 @@ namespace Plugin
             }
         }
 
-        // Try to create persisten storage folder
+        // Try to create persistent storage folder
         _persistentStoragePath = _service->PersistentPath();
         if (_persistentStoragePath.empty() == false) {
             if (Core::Directory(_persistentStoragePath.c_str()).CreatePath() == false) {
                 _persistentStoragePath.clear();
-            } else {
-                TRACE_L1("Failed to create persistent storage path at %s\n", _persistentStoragePath);
+                TRACE_L1("Failed to create persistent storage path at %s\n", _persistentStoragePath.c_str());
             }
         }
 
@@ -439,7 +438,7 @@ namespace Plugin
                     leases.Add().Set(offersIterator.Current());
                 }
 
-                if (leases.ToFile(leaseFile) == false) {
+                if (leases.IElement::ToFile(leaseFile) == false) {
                     TRACE(Trace::Warning, ("Error occured while trying to save dhcp leases to file!"));
                 } 
 
@@ -463,7 +462,7 @@ namespace Plugin
             if (leaseFile.Open(true) == true) {
 
                 Core::JSON::ArrayType<DHCPClientImplementation::Offer::JSON> leases;
-                if (leases.FromFile(leaseFile) == true) {
+                if (leases.IElement::FromFile(leaseFile) == true) {
 
                     auto iterator = leases.Elements();
                     while (iterator.Next()) {

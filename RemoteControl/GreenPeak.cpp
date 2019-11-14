@@ -333,6 +333,11 @@ namespace Plugin {
             TRACE_GLOBAL(Trace::Information, (_T("RF4CE Report: %s"), text.c_str()));
         }
 
+        static void SendEvent(Exchange::ProducerEvents event)
+        {
+            _singleton->_SendEvent(event);
+        }
+
     private:
         inline void _Dispatch(const bool pressed, const uint16_t code, const uint16_t modifiers)
         {
@@ -343,6 +348,11 @@ namespace Plugin {
             }
 
             _adminLock.Unlock();
+        }
+        inline void _SendEvent(Exchange::ProducerEvents event) {
+            if (_callback != nullptr) {
+                _callback->ProducerEvent(Name(), event);
+            }
         }
         inline void _Initialized(const uint16_t major,
             const uint16_t minor,
@@ -747,6 +757,17 @@ static void gpApplication_BindConfirm(gpRf4ce_Result_t result, UInt8 bindingRef,
     gpApplication_ZRCBindSetup(true, false);
 }
 
+static void gpApplication_UnBindConfirm(gpRf4ce_Result_t result)
+{
+    if (result == gpRf4ce_ResultSuccess) {
+        WPEFramework::Plugin::GreenPeak::SendEvent(WPEFramework::Exchange::ProducerEvents::UnpairingSuccess);
+    } else if (result == gpRf4ce_ResultDiscoveryTimeout) {
+        WPEFramework::Plugin::GreenPeak::SendEvent(WPEFramework::Exchange::ProducerEvents::UnpairingTimedout);
+    } else {
+        WPEFramework::Plugin::GreenPeak::SendEvent(WPEFramework::Exchange::ProducerEvents::UnpairingFailed);
+    }
+}
+
 void gpZrc_cbMsg(gpZrc_MsgId_t MsgId, UInt8 length, gpZrc_Msg_t* pMsg)
 {
     UIntLoop index = 0;
@@ -818,7 +839,9 @@ void gpZrc_cbMsg(gpZrc_MsgId_t MsgId, UInt8 length, gpZrc_Msg_t* pMsg)
         if (pMsg->cbUnbindConfirm.status == gpRf4ce_ResultNoPairing) {
             TRACE_L1("Invalid binding id (0x%x)", pMsg->cbUnbindConfirm.bindingId);
         }
+
         // XXX: gpRf4ce_ResultNoAck (0xe9) ???
+        gpApplication_UnBindConfirm(pMsg->cbUnbindConfirm.status);
         break;
 
     case gpZrc_MsgId_cbUnbindIndication:
@@ -1000,6 +1023,7 @@ static void target_DoR4ceReset(void)
 static void target_ActivatePairing()
 {
     Plugin::GreenPeak::Report(string("Entering the PairingMode."));
+    WPEFramework::Plugin::GreenPeak::SendEvent(WPEFramework::Exchange::ProducerEvents::PairingStarted);
 #if 1
     gpApplication_ZRCBindSetup(false, true);
 #else
@@ -1019,6 +1043,7 @@ static void target_ActivatePairing()
 static void target_ActivateUnpairing()
 {
     Plugin::GreenPeak::Report(string("Unpairing."));
+    WPEFramework::Plugin::GreenPeak::SendEvent(WPEFramework::Exchange::ProducerEvents::UnpairingStarted);
     gpApplication_ZRCUnbind(_bindingId);
 }
 
@@ -1043,11 +1068,20 @@ void gpRf4ce_cbDpiDisableConfirm(gpRf4ce_Result_t result)
 void gpApplication_IndicateBindSuccessToMiddleware(UInt8 bindingRef, UInt8 profileId)
 {
     GP_LOG_SYSTEM_PRINTF("Bind Success. BindId: 0x%x, ProfileId: 0x%x", 0, bindingRef, profileId);
+    WPEFramework::Plugin::GreenPeak::SendEvent(WPEFramework::Exchange::ProducerEvents::PairingSuccess);
 }
 
 void gpApplication_IndicateBindFailureToMiddleware(gpRf4ce_Result_t result)
 {
     GP_LOG_SYSTEM_PRINTF("Bind Failure. Status 0x%x", 0, result);
+    if (result == gpRf4ce_ResultDiscoveryTimeout)
+    {
+        WPEFramework::Plugin::GreenPeak::SendEvent(WPEFramework::Exchange::ProducerEvents::PairingTimedout);
+    }
+    else
+    {
+        WPEFramework::Plugin::GreenPeak::SendEvent(WPEFramework::Exchange::ProducerEvents::PairingFailed);
+    }
 }
 
 extern GP_RF4CE_DISPATCHER_CONST gpRf4ceDispatcher_DataCallbacks_t

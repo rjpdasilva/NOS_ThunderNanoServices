@@ -84,12 +84,11 @@ namespace Plugin {
     // Event: pinactivity - Notifies about GPIO pin activity
     void IOConnector::event_pinactivity(const string& id, const int32_t& value)
     {
-        PinactivityParamsData params;
+        ActivityParamsData params;
         params.Value = value;
 
-        Notify(_T("pinactivity"), params, [&](const string& designator) -> bool {
-            const string designator_id = designator.substr(0, designator.find('.'));
-            return (id == designator_id);
+        Notify(_T("activity"), params, [&](const string& designator) -> bool {
+            return (id == designator);
         });
     }
 

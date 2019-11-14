@@ -1,5 +1,4 @@
 cmake_minimum_required(VERSION 3.3)
-
 find_package(WPEFramework)
 
 # All packages that did not deliver a CMake Find script (and some deprecated scripts that need to be removed)
@@ -7,6 +6,7 @@ find_package(WPEFramework)
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake/")
 
 option(PLUGIN_BLUETOOTH "Include Bluetooth plugin" OFF)
+option(PLUGIN_BLUETOOTHREMOTECONTROL "Include Bluetooth Remote Control plugin" OFF)
 option(PLUGIN_COMMANDER "Include Commander plugin" OFF)
 option(PLUGIN_COMPOSITOR "Include Compsitor plugin" OFF)
 option(PLUGIN_DEVICEIDENTIFICATION "Include DeviceIdentification plugin" OFF)
@@ -26,9 +26,10 @@ option(PLUGIN_NETWORKCONTROL "Include NetworkControlplugin" OFF)
 option(PLUGIN_OPENCDMI "Include OpenCDMi plugin" OFF)
 option(PLUGIN_PACKAGER "Include Packager plugin" OFF)
 option(PLUGIN_POWER "Include Power plugin" OFF)
-option(PLUGIN_REMOTECONTROL "Include RemoteControl plugin" ON)
 option(PLUGIN_REMOTEHOSTEXAMPLE "Include RemoteHostExample plugin" ON)
 option(PLUGIN_REMOTEINVOCATION "Include RemoteInvocation plugin" ON)
+option(PLUGIN_REMOTECONTROL "Include RemoteControl plugin" OFF)
+option(PLUGIN_SECURESHELLSERVER "Include SecureShellServer plugin" OFF)
 option(PLUGIN_STREAMER "Include Streamer plugin" OFF)
 option(PLUGIN_SNAPSHOT "Include Snapshot plugin" OFF)
 option(PLUGIN_SPARK "Include SparkEngine plugin" OFF)
@@ -48,6 +49,8 @@ option(WPEFRAMEWORK_CREATE_IPKG_TARGETS "Generate the CPack configuration for pa
 # Library installation section
 string(TOLOWER ${NAMESPACE} STORAGE_DIRECTORY)
 
+#include(CompileSettings)
+
 # for writing pc and config files
 include(CmakeHelperFunctions)
 
@@ -56,7 +59,11 @@ if(BUILD_REFERENCE)
 endif()
 
 if(PLUGIN_BLUETOOTH)
-    add_subdirectory(Bluetooth)
+    add_subdirectory(BluetoothControl)
+endif()
+
+if(PLUGIN_BLUETOOTHREMOTECONTROL)
+    add_subdirectory(BluetoothRemoteControl)
 endif()
 
 if(PLUGIN_COMMANDER)
@@ -73,6 +80,10 @@ endif()
 
 if(PLUGIN_DEVICEINFO)
     add_subdirectory(DeviceInfo)
+endif()
+
+if(PLUGIN_DSRESOLUTION)
+    add_subdirectory(DSResolution)
 endif()
 
 if(PLUGIN_DHCPSERVER)
@@ -98,6 +109,7 @@ endif()
 if(PLUGIN_FIRMWARECONTROL)
     add_subdirectory(FirmwareControl)
 endif()
+
 if(PLUGIN_FRONTPANEL)
     add_subdirectory(FrontPanel)
 endif()
@@ -152,6 +164,10 @@ endif()
 
 if(PLUGIN_RTSPCLIENT)
     add_subdirectory(RtspClient)
+endif()
+
+if(PLUGIN_SECURESHELLSERVER)
+    add_subdirectory(SecureShellServer)
 endif()
 
 if(PLUGIN_SNAPSHOT)

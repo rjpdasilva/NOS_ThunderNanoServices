@@ -1,3 +1,7 @@
+#include <regex>
+#include <string>
+#include <vector>
+
 #include "Module.h"
 
 // Get in the definitions required for access to the sepcific
@@ -23,6 +27,56 @@ typedef ::CDMi::ISystemFactory* (*GetDRMSystemFunction)();
 namespace WPEFramework {
 
 namespace Plugin {
+
+    static void TrimWs(const std::string& str, size_t& start, size_t& end)
+    {
+        while(std::isspace(str[start]) && start < end) {
+            ++start;
+        }
+
+        while(std::isspace(str[end - 1]) && end - 1 > 0) {
+         --end;
+        }
+    }
+
+    static std::vector<std::string> Tokenize(const std::string& str, char token)
+    {
+        std::vector<std::string> tokens;
+        size_t startPos = 0;
+        size_t endPos = 0;
+        do {
+            endPos = str.find(token, startPos);
+            if (endPos != std::string::npos) {
+                size_t end = endPos;
+                TrimWs(str, startPos, end);
+                tokens.emplace_back(std::string(&str[startPos], end - startPos));
+                startPos = endPos + 1;
+            }
+        } while (endPos != std::string::npos && startPos < str.length());
+        size_t end = str.size();
+        TrimWs(str, startPos, end);
+        tokens.emplace_back(std::string(&str[startPos], end - startPos));
+        return tokens;
+    }
+
+    static void ParseContentType(const std::string& contentType, std::string& mimeType, std::vector<std::string>& codecsList) {
+        codecsList.clear();
+        if (contentType.empty() == false) {
+            std::smatch matches;
+            const size_t kCaptureGroupsNumber = 4;
+            std::regex expr("\\s*([a-zA-Z0-9\\-\\+]+/[a-zA-Z0-9\\-\\+]+)\\s*(;\\s*codecs\\*?\\s*=\\s*\"?([a-zA-Z0-9,\\s\\+\\-\\.']+)\"?\\s*)?");
+            bool matched = std::regex_match(contentType, matches, expr, std::regex_constants::match_default);
+
+            if (matched && matches.size() == kCaptureGroupsNumber) {
+                ASSERT(matches[0] == contentType);
+                mimeType = matches[1];
+                if (matches[2].str().empty() == false) {
+                    std::vector<std::string> codecs = Tokenize(matches[3], ',');
+                    codecsList.swap(codecs);
+                }
+            }
+        }
+    }
 
     static const TCHAR BufferFileName[] = _T("ocdmbuffer.");
 
@@ -78,7 +132,7 @@ namespace Plugin {
             ::OCDM::IAccessorOCDM* _parentInterface;
         };
 
-        class AccessorOCDM : public ::OCDM::IAccessorOCDM, public ::OCDM::IAccessorOCDMExt {
+        class AccessorOCDM : public ::OCDM::IAccessorOCDM {
         private:
             AccessorOCDM() = delete;
             AccessorOCDM(const AccessorOCDM&) = delete;
@@ -537,7 +591,7 @@ namespace Plugin {
 
                 BEGIN_INTERFACE_MAP(Session)
                 INTERFACE_ENTRY(::OCDM::ISession)
-                INTERFACE_RELAY(::OCDM::ISessionExt, _mediaKeySessionExt)
+                //INTERFACE_RELAY(::OCDM::ISessionExt, _mediaKeySessionExt)
                 END_INTERFACE_MAP
 
             private:
@@ -674,14 +728,15 @@ namespace Plugin {
             {
 
                 CDMi::IMediaKeys* system = _parent.KeySystem(keySystem);
+                ::OCDM::OCDM_RESULT result = ::OCDM::OCDM_RESULT::OCDM_S_FALSE;
 
                 if (system != nullptr) {
                     TRACE(Trace::Information, ("Set ServerCertificate()"));
-                    system->SetServerCertificate(serverCertificate, serverCertificateLength);
+                    result = static_cast<::OCDM::OCDM_RESULT>(system->SetServerCertificate(serverCertificate, serverCertificateLength));
                 } else {
                     TRACE_L1("Could not set the Server Certificates for system: %s", keySystem.c_str());
                 }
-                return (::OCDM::OCDM_RESULT::OCDM_SUCCESS);
+                return result;
             }
 
             virtual uint64_t GetDrmSystemTime(const std::string& keySystem) const override
@@ -741,12 +796,12 @@ namespace Plugin {
             OCDM::OCDM_RESULT GetSecureStopIds(
                 const std::string& keySystem,
                 unsigned char Ids[],
-                uint8_t idSize,
+                uint16_t idsLength,
                 uint32_t& count)
             {
                 CDMi::IMediaKeysExt* systemExt = dynamic_cast<CDMi::IMediaKeysExt*>(_parent.KeySystem(keySystem));
                 if (systemExt) {
-                    return (OCDM::OCDM_RESULT)systemExt->GetSecureStopIds(Ids, idSize, count);
+                    return (OCDM::OCDM_RESULT)systemExt->GetSecureStopIds(Ids, idsLength, count);
                 }
                 return ::OCDM::OCDM_RESULT::OCDM_S_FALSE;
             }
@@ -823,7 +878,6 @@ namespace Plugin {
 
             BEGIN_INTERFACE_MAP(AccessorOCDM)
             INTERFACE_ENTRY(::OCDM::IAccessorOCDM)
-            INTERFACE_ENTRY(::OCDM::IAccessorOCDMExt)
             END_INTERFACE_MAP
 
         private:
@@ -923,6 +977,8 @@ namespace Plugin {
                     Add("name", &Name);
                     Add("designators", &Designators);
                     Add("configuration", &Configuration);
+                    Add("blacklistedcodecregexps", &BlacklistedCodecRegexps);
+                    Add("blacklistedmediatyperegexps", &BlacklistedMediaTypeRegexps);
                 }
 
                 virtual ~Systems() = default;
@@ -931,6 +987,8 @@ namespace Plugin {
                 Core::JSON::String Name;
                 Core::JSON::ArrayType<Core::JSON::String> Designators;
                 Core::JSON::String Configuration;
+                Core::JSON::ArrayType<Core::JSON::String> BlacklistedCodecRegexps;
+                Core::JSON::ArrayType<Core::JSON::String> BlacklistedMediaTypeRegexps;
             };
 
         public:
@@ -1058,6 +1116,14 @@ namespace Plugin {
                         factory->second.Factory->Initialize(service, configuration);
                     }
                 }
+
+                if ((system.empty() == false) && (index.Current().BlacklistedCodecRegexps.IsSet() == true)) {
+                    FillBlacklist(_systemBlacklistedCodecRegexps, system, index.Current().BlacklistedCodecRegexps);
+                }
+
+                if ((system.empty() == false) && (index.Current().BlacklistedMediaTypeRegexps.IsSet() == true)) {
+                    FillBlacklist(_systemBlacklistedMediaTypeRegexps, system, index.Current().BlacklistedMediaTypeRegexps);
+                }
             }
 
             if (_systemToFactory.size() == 0) {
@@ -1130,7 +1196,7 @@ namespace Plugin {
         }
 
     public:
-        bool IsTypeSupported(const std::string& keySystem, const std::string& mimeType)
+        bool IsTypeSupported(const std::string& keySystem, const std::string& contentType)
         {
 
             // FIXME: The dead code below this statement has at least the following issues,
@@ -1154,13 +1220,42 @@ namespace Plugin {
                 if (index == _systemToFactory.end()) {
                     result = false;
                 } else {
-                    //const std::vector<std::string>& mimes (index->second->MimeTypes());
-                    //mime type still needs to be parsed.
-                    result = true; //((mimeType.empty() == true) || std::find(mimes.begin(), mimes.end(), mimeType) != mimes.end());
+                    if (contentType.empty() == false) {
+                        std::string mimeType;
+                        std::vector<std::string> codecs;
+                        ParseContentType(contentType, mimeType, codecs);
+                        if (mimeType.empty() == false) {
+                            Blacklist::iterator systemMediaTypeRegexps = _systemBlacklistedMediaTypeRegexps.find(index->second.Name);
+                            if (systemMediaTypeRegexps != _systemBlacklistedMediaTypeRegexps.end()) {
+                                for (auto& systemMediaTypeRegexp : systemMediaTypeRegexps->second) {
+                                    if (std::regex_match(mimeType, std::regex(systemMediaTypeRegexp))) {
+                                        TRACE(Trace::Information, ("%s mime type matches blacklisted %s regexp", mimeType.c_str(), systemMediaTypeRegexp.c_str()));
+                                        result = false;
+                                        break;
+                                    }
+                                }
+                            }
+
+                            if (result == true && codecs.size() > 0) {
+                                Blacklist::iterator systemCodecRegexps = _systemBlacklistedCodecRegexps.find(index->second.Name);
+                                if (systemCodecRegexps != _systemBlacklistedCodecRegexps.end()) {
+                                    for (const std::string& codec : codecs) {
+                                        for (const std::string& codecRegexp : systemCodecRegexps->second) {
+                                            if (std::regex_match(codec, std::regex(codecRegexp))) {
+                                                TRACE(Trace::Information, ("%s codec matches blacklisted %s regexp", codec.c_str(), codecRegexp.c_str()));
+                                                result = false;
+                                                break;
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
                 }
             }
 
-            TRACE(Trace::Information, ("IsTypeSupported(%s,%s) => %s", keySystem.c_str(), mimeType.c_str(), result ? _T("True") : _T("False")));
+            TRACE(Trace::Information, ("IsTypeSupported(%s,%s) => %s", keySystem.c_str(), contentType.c_str(), result ? _T("True") : _T("False")));
 
             return result;
         }
@@ -1212,10 +1307,28 @@ namespace Plugin {
         END_INTERFACE_MAP
 
     private:
+        using Blacklist = std::map<const std::string, std::vector<std::string>>;
+        void FillBlacklist(Blacklist& blacklist, const std::string& system, const Core::JSON::ArrayType<Core::JSON::String>& list)
+        {
+            Core::JSON::ArrayType<Core::JSON::String>::ConstIterator iter(list.Elements());
+
+            std::vector<std::string> elements;
+            while (iter.Next() == true) {
+                const string element(iter.Current().Value());
+                if (element.empty() == false) {
+                    elements.emplace_back(std::move(element));
+                }
+            }
+
+            blacklist.insert(std::pair<const std::string, std::vector<std::string>>(system, elements));
+        }
+
         ::OCDM::IAccessorOCDM* _entryPoint;
         ExternalAccess* _service;
         bool _compliant;
         std::map<const std::string, SystemFactory> _systemToFactory;
+        Blacklist _systemBlacklistedCodecRegexps;
+        Blacklist _systemBlacklistedMediaTypeRegexps;
         std::list<Core::Library> _systemLibraries;
         std::list<string> _keySystems;
     };
