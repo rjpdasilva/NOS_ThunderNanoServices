@@ -57,7 +57,7 @@ namespace Plugin {
                     _memory = WPEFramework::WebKitBrowser::MemoryObserver(connection);
 
                     ASSERT(_memory != nullptr);
-                    _memory->Observe(connection->RemoteId());
+                    _memory->Observe(connection->ProcessId());
 
                     connection->Release();
                 }
