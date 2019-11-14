@@ -85,8 +85,61 @@ Containers interface methods:
 
 | Method | Description |
 | :-------- | :-------- |
+| [start](#method.start) | Starts a new container |
 | [stop](#method.stop) | Stops a container |
 
+<a name="method.start"></a>
+## *start <sup>method</sup>*
+
+Starts a new container.
+
+### Parameters
+
+| Name | Type | Description |
+| :-------- | :-------- | :-------- |
+| params | object |  |
+| params?.name | string | <sup>*(optional)*</sup> Name of container |
+| params?.command | string | <sup>*(optional)*</sup> Command that will be started in the container |
+| params?.parameters | string | <sup>*(optional)*</sup> Parameters supplied to the command |
+
+### Result
+
+| Name | Type | Description |
+| :-------- | :-------- | :-------- |
+| result | null | Always null |
+
+### Errors
+
+| Code | Message | Description |
+| :-------- | :-------- | :-------- |
+| 2 | ```ERROR_UNAVAILABLE``` | Container not found |
+| 1 | ```ERROR_GENERAL``` | Failed to start container |
+
+### Example
+
+#### Request
+
+```json
+{
+    "jsonrpc": "2.0", 
+    "id": 1234567890, 
+    "method": "Containers.1.start", 
+    "params": {
+        "name": "ContainerName", 
+        "command": "lsof", 
+        "parameters": "-i"
+    }
+}
+```
+#### Response
+
+```json
+{
+    "jsonrpc": "2.0", 
+    "id": 1234567890, 
+    "result": null
+}
+```
 <a name="method.stop"></a>
 ## *stop <sup>method</sup>*
 
@@ -148,8 +201,8 @@ Containers interface properties:
 | [memory](#property.memory) <sup>RO</sup> | Memory taken by container |
 | [status](#property.status) <sup>RO</sup> | Operational status of the container |
 | [cpu](#property.cpu) <sup>RO</sup> | CPU time |
-| [logpath](#property.logpath) <sup>RO</sup> | Containers log |
-| [configpath](#property.configpath) <sup>RO</sup> | Container's configuration |
+| [logpath](#property.logpath) <sup>RO</sup> | Containers log path |
+| [configpath](#property.configpath) <sup>RO</sup> | Path to container's configuration |
 
 <a name="property.containers"></a>
 ## *containers <sup>property</sup>*
@@ -372,7 +425,7 @@ Provides access to the CPU time.
     "result": {
         "total": 2871287421, 
         "threads": [
-            12314235
+            2871287421
         ]
     }
 }
@@ -380,7 +433,7 @@ Provides access to the CPU time.
 <a name="property.logpath"></a>
 ## *logpath <sup>property</sup>*
 
-Provides access to the containers log.
+Provides access to the containers log path.
 
 > This property is **read-only**.
 
@@ -388,7 +441,7 @@ Provides access to the containers log.
 
 | Name | Type | Description |
 | :-------- | :-------- | :-------- |
-| (property) | string | logs from the container |
+| (property) | string | Path to file containing logs from the container |
 
 > The *name* shall be passed as the index to the property, e.g. *Containers.1.logpath@ContainerName*.
 
@@ -421,7 +474,7 @@ Provides access to the containers log.
 <a name="property.configpath"></a>
 ## *configpath <sup>property</sup>*
 
-Provides access to the container's configuration.
+Provides access to the path to container's configuration.
 
 > This property is **read-only**.
 
@@ -429,7 +482,7 @@ Provides access to the container's configuration.
 
 | Name | Type | Description |
 | :-------- | :-------- | :-------- |
-| (property) | string | configuraiton of the container |
+| (property) | string | Path to file containing the configuration of the container |
 
 > The *name* shall be passed as the index to the property, e.g. *Containers.1.configpath@ContainerName*.
 
