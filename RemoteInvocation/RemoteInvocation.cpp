@@ -1,13 +1,13 @@
 #include "RemoteInvocation.h"
 #include "plugins/IShell.h"
-#include "interfaces/IRemoteHost.h"
+#include "interfaces/IRemoteLinker.h"
 
 namespace WPEFramework {
 namespace Plugin {
 
     SERVICE_REGISTRATION(RemoteInvocation, 1, 0);
 
-    static std::map<uint32_t, uint32_t> connectionPidMap;
+    static std::map<uint32_t, Core::IUnknown*> connectionMap;
 
     const string RemoteInvocation::Initialize(PluginHost::IShell* service) 
     {
@@ -35,10 +35,59 @@ namespace Plugin {
         return (string());
     }
 
+    uint32_t RemoteInvocation::Invocator::LinkByCallsign(const uint16_t port, const uint32_t interfaceId, const uint32_t exchangeId, const string& callsign) 
+    {
+        uint32_t result = Core::ERROR_NONE;
+        string remoteAddress = Core::NodeId(_remoteId.c_str()).HostAddress() + ":" + std::to_string(port);
+
+        auto plugin = reinterpret_cast<Core::IUnknown*>(_service->QueryInterfaceByCallsign(Exchange::IRemoteLinker::ID, callsign));
+
+        if (plugin != nullptr) {
+            auto linker = plugin->QueryInterface<Exchange::IRemoteLinker>();
+
+            if (linker != nullptr) {
+                result = linker->Connect(remoteAddress, interfaceId, exchangeId);
+                linker->Release();
+
+                connectionMap.insert(std::pair<uint32_t, Core::IUnknown*>(exchangeId, plugin));
+                plugin->AddRef();
+            } else {
+                result = Core::ERROR_ILLEGAL_STATE;
+            }
+
+            plugin->Release();
+        } else {
+            result = Core::ERROR_UNAVAILABLE;
+        }
+
+        return result;
+    }
+
+    uint32_t RemoteInvocation::Invocator::Unlink(const uint32_t exchangeId) 
+    {
+        uint32_t result = Core::ERROR_NONE;
+        auto plugin = connectionMap.find(exchangeId);
+
+        if (plugin != connectionMap.end()) {
+            auto linker = plugin->second->QueryInterface<Exchange::IRemoteLinker>();
+
+            if (linker != nullptr) {
+                result = linker->Disconnect();
+
+                if (result == Core::ERROR_NONE) {
+                    plugin->second->Release();
+                    connectionMap.erase(exchangeId);
+                }
+            } else {
+                result = Core::ERROR_ILLEGAL_STATE;
+            }
+        }
+    }
+
     uint32_t RemoteInvocation::Invocator::Instantiate(const uint16_t port, const Exchange::IRemoteInvocation::ProgramParams& params)
     {
         uint32_t result = Core::ERROR_NONE;
-
+/*
         PluginHost::IShell::ICOMLink* handler(_service->COMLink());
         uint32_t _cid;
 
@@ -46,7 +95,6 @@ namespace Plugin {
 
         RPC::Object definition(params.callsign, params.locator,
             params.className,
-            params.id,
             params.interface,
             params.version,
             "",
@@ -59,38 +107,36 @@ namespace Plugin {
         auto plugin = reinterpret_cast<Core::IUnknown*>(handler->Instantiate(definition, Core::infinite, _cid, params.className, params.callsign));
 
         if (plugin != nullptr) {
-            auto remotePlugin = plugin->QueryInterface<Exchange::IRemoteHost>();
+            auto remotePlugin = plugin->QueryInterface<Exchange::IRemoteLinker>();
             
             if (remotePlugin != nullptr) {
-                if (remotePlugin->SetLocalShell(_service) != Core::ERROR_NONE) {
-                    TRACE_L1("Error occurred while trying to set local shell to %s", params.className.c_str());
-                } 
-                else if(remotePlugin->Connect(remoteAddress, params.interface, params.id) != Core::ERROR_NONE) {
+                
+                if(remotePlugin->Connect(remoteAddress, params.interface, params.id) != Core::ERROR_NONE) {
                     TRACE_L1("Error occurred while trying to connect %s to %s", params.className.c_str(), remoteAddress.c_str());
                 }
             } else {
                 result = Core::ERROR_BAD_REQUEST;
-                TRACE_L1("Failed to get IremoteHost interface from %s plugin. It is required for remote invocation!", params.className.c_str());
+                TRACE_L1("Failed to get IRemoteLinker interface from %s plugin. It is required for remote invocation!", params.className.c_str());
             }
 
             plugin->Release();
         }
-        
+*/
         return result;
     }
 
     uint32_t RemoteInvocation::Invocator::Terminate(uint32_t connectionId) {
-        auto foundPid = connectionPidMap.find(connectionId);
+        /*auto foundPid = connectionMap.find(connectionId);
 
-        if (foundPid != connectionPidMap.end()) {
+        if (foundPid != connectionMap.end()) {
             Core::Process process(foundPid->second);
 
             // TODO: Add trying gently first
             process.Kill(true);
             process.WaitProcessCompleted(Core::infinite);
-            connectionPidMap.erase(foundPid);
+            connectionMap.erase(foundPid);
         }
-
+*/
         return Core::ERROR_NONE;
     }
 }

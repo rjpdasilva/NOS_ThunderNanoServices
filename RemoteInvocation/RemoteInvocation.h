@@ -34,11 +34,10 @@ namespace Plugin {
         };
 
         class Invocator : public Exchange::IRemoteInvocation {
-        private:
+        public:
             Invocator(const Invocator&) = delete;
             Invocator& operator=(const Invocator&) = delete;
 
-        public:
             Invocator(const string& remoteId, PluginHost::IShell* service)
                 : _remoteId(remoteId)
                 , _service(service)
@@ -48,13 +47,9 @@ namespace Plugin {
 
             void AddRef() const override {
                 _refCount++;
-
-                printf("### Remote invocation refcount increased to %d\n", _refCount);
             };
             uint32_t Release() const override {
                 _refCount--;
-
-                printf("### Remote invocation refcount decreased to %d\n", _refCount);
 
                 if (_refCount <= 0) {
                     delete this;
@@ -72,8 +67,11 @@ namespace Plugin {
             INTERFACE_ENTRY(Exchange::IRemoteInvocation)
             END_INTERFACE_MAP
 
-            //   IRemoteInvocaiton methonds
+            //   IRemoteInvocaiton methods
             // --------------------------------------------------------------------------------------------------------
+            uint32_t LinkByCallsign(const uint16_t port, const uint32_t interfaceId, const uint32_t exchangeId, const string& callsign);
+            uint32_t Unlink(const uint32_t exchangeId) override;
+            
             uint32_t Instantiate(const uint16_t port, const Exchange::IRemoteInvocation::ProgramParams& params) override;
             uint32_t Terminate(uint32_t connectionId) override;
 
@@ -130,7 +128,7 @@ namespace Plugin {
 
         virtual ~RemoteInvocation()
         {
-            printf("################ Remote invocation destructor called!\n");
+
         }
 
         BEGIN_INTERFACE_MAP(RemoteInvocation)

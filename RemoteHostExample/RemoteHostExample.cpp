@@ -10,24 +10,20 @@ namespace Plugin {
     {
         string result;
 
+        Config config;
+        config.FromString(service->ConfigLine());
+
+        // If SlaveAddress will not be set, plugin will be started localy
+        // otherwise, plugin started on slave machine will be used
+        string remoteTarget = config.SlaveAddress.Value();
         uint32_t connectionId;
+        _implementation = service->Root<Exchange::IRemoteHostExample>(connectionId, Core::infinite, "RemoteHostExampleImpl", ~0, remoteTarget);
 
-        auto _implementation = service->Root<Exchange::IRemoteHostExample>(connectionId, Core::infinite, "RemoteHostExampleImpl", ~0, "127.0.0.1:5797");
+        if (remoteTarget.empty() == false) {
+            string response;
+            _implementation->Greet(config.Name.Value(), response);
 
-        if (_implementation != nullptr) {
-            string result;
-            
-            if (_implementation->Greet("Patrick", result) != Core::ERROR_NONE) {
-                printf("COnnection failed!\n");
-            }
-            
-            TRACE_L1("Message to you: %s", result.c_str());
-        } else {
-            TRACE_L1("Failed to start RemoteHostExample implementaiton");
-        }
-
-        if (_implementation != nullptr) {
-            _implementation->Release();
+            printf("## RESPONSE: %s\n", response.c_str());
         }
 
         return result;

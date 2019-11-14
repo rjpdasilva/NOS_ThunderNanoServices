@@ -1,0 +1,10 @@
+{
+ "locator":"libWPEFrameworkMinimalPluign.so",
+ "classname":"MinimalPluign",
+ "autostart":true,
+ "configuration":{
+  "root":{
+   "outofprocess":true
+  }
+ }
+}

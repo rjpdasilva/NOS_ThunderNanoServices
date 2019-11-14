@@ -1,30 +1,43 @@
 #include "Module.h"
 #include "interfaces/IRemoteHostExample.h"
-#include "interfaces/IRemoteHost.h"
+#include "interfaces/IRemoteLinker.h"
 
 namespace WPEFramework {
 namespace Exchange {
 
-    class RemoteHostExampleImpl : public RemoteHost, IRemoteHostExample {
+    class RemoteHostExampleImpl : public RemoteLinker, IRemoteHostExample {
     public:
-        virtual ~RemoteHostExampleImpl() {
-            printf("### Minimal plugin destructor called!\n");
+        RemoteHostExampleImpl() 
+            : _name()
+        {
+
         }
 
-        uint32_t Greet(const string& name, string& greeting);
+        virtual ~RemoteHostExampleImpl() 
+        {
+            printf("### Remote Host Example Destructor called!\n");
+        }
+
+        uint32_t SetName(const string& name) override;
+        uint32_t Greet(const string& name, string& greeting) override;
 
         BEGIN_INTERFACE_MAP(RemoteHostExampleImpl)
             INTERFACE_ENTRY(Exchange::IRemoteHostExample)
-            INTERFACE_ENTRY(Exchange::IRemoteHost)
+            INTERFACE_ENTRY(Exchange::IRemoteLinker)
         END_INTERFACE_MAP
+
+    private:
+        string _name;
     };
 
-    uint32_t RemoteHostExampleImpl::Greet(const string& name, string& greeting) {
-        string myName = "";
-        auto s = GetLocalShell()->SubSystems();
-        greeting = "Hello " + myName;
-        //greeting += myName;
-        greeting += "ei";
+    uint32_t RemoteHostExampleImpl::SetName(const string& name) {
+        _name = name;
+
+        return Core::ERROR_NONE;
+    }
+
+    uint32_t RemoteHostExampleImpl::Greet(const string& name, string& response) {
+        response = "Hello " + name + ", my name is " + _name;
 
         return Core::ERROR_NONE;
     }
