@@ -13,15 +13,22 @@ namespace Plugin {
         Config config;
         config.FromString(service->ConfigLine());
 
+        string name = config.Name.Value();
+
         // If SlaveAddress will not be set, plugin will be started localy
         // otherwise, plugin started on slave machine will be used
         string remoteTarget = config.SlaveAddress.Value();
         uint32_t connectionId;
+
+        printf("## PRE CONNECTION. Target: %s Name: %s\n", remoteTarget.c_str(), name.c_str());
+
         _implementation = service->Root<Exchange::IRemoteHostExample>(connectionId, Core::infinite, "RemoteHostExampleImpl", ~0, remoteTarget);
+
+        printf("## POST CONNECITON. Pointer: %p; Connection Id: %d \n", _implementation, connectionId);
 
         if (remoteTarget.empty() == false) {
             string response;
-            _implementation->Greet(config.Name.Value(), response);
+            _implementation->Greet(name, response);
 
             printf("## RESPONSE: %s\n", response.c_str());
         }
