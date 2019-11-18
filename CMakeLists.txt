@@ -155,7 +155,7 @@ if(PLUGIN_REMOTECONTROL)
 endif()
 
 if(PLUGIN_REMOTEHOSTEXAMPLE)
-    add_subdirectory(RemoteHostExample)
+    add_subdirectory(examples/RemoteHostExample)
 endif()
 
 if(PLUGIN_REMOTEINVOCATION)

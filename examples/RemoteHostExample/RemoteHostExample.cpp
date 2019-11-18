@@ -20,17 +20,15 @@ namespace Plugin {
         string remoteTarget = config.SlaveAddress.Value();
         uint32_t connectionId;
 
-        printf("## PRE CONNECTION. Target: %s Name: %s\n", remoteTarget.c_str(), name.c_str());
-
         _implementation = service->Root<Exchange::IRemoteHostExample>(connectionId, Core::infinite, "RemoteHostExampleImpl", ~0, remoteTarget);
-
-        printf("## POST CONNECITON. Pointer: %p; Connection Id: %d \n", _implementation, connectionId);
 
         if (remoteTarget.empty() == false) {
             string response;
             _implementation->Greet(name, response);
 
             printf("## RESPONSE: %s\n", response.c_str());
+        } else {
+            _implementation->SetName(name);
         }
 
         return result;
