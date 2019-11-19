@@ -1,8 +1,5 @@
 #pragma once
 
-// !!!! IMPORTANT !!!!
-// This plugin should never be started as outofprocess!
-
 #include "Module.h"
 #include "interfaces/IRemoteInvocation.h"
 
@@ -20,7 +17,7 @@ namespace Plugin {
         public:
             Config()
                 : Core::JSON::Container()
-                , Address("0.0.0.0:9238")
+                , Address("0.0.0.0:5797")
             {
                 Add(_T("address"), &Address);
             }
@@ -110,7 +107,12 @@ namespace Plugin {
                 void* result = nullptr;
 
                 if (interfaceId == Exchange::IRemoteInvocation::ID) {
-                    result = new Invocator(Connection(id)->RemoteId(), _service);
+                    string source = Connection(id)->RemoteId();
+
+                    TRACE(Trace::Information, ("Remote invocation instance requested from %s\n", source.c_str()));
+                    result = new Invocator(source, _service);
+                } else {
+                    TRACE_L1("Failed to get interface %d from RemoteInvocation. Only %d is supported ", interfaceId, Exchange::IRemoteInvocation::ID)
                 }
 
                 return result;

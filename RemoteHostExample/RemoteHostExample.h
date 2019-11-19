@@ -45,8 +45,8 @@ namespace Plugin {
         }
 
         BEGIN_INTERFACE_MAP(RemoteHostExample)
-            INTERFACE_AGGREGATE(Exchange::IRemoteHostExample, _implementation)
-            INTERFACE_AGGREGATE(Exchange::IRemoteLinker, _implementation)
+            INTERFACE_AGGREGATE(Exchange::IRemoteHostExample, _implementationLocal)
+            INTERFACE_AGGREGATE(Exchange::IRemoteLinker, _implementationLocal)
             INTERFACE_ENTRY(PluginHost::IPlugin)
         END_INTERFACE_MAP
 
@@ -59,6 +59,7 @@ namespace Plugin {
 
     private:
         Exchange::IRemoteHostExample* _implementation;
+        Exchange::IRemoteHostExample* _implementationLocal;
     };
 
 } // namespace Plugin

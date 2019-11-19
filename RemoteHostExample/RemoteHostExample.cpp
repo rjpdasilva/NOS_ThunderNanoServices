@@ -20,22 +20,32 @@ namespace Plugin {
         string remoteTarget = config.SlaveAddress.Value();
         uint32_t connectionId;
 
+        _implementationLocal = service->Root<Exchange::IRemoteHostExample>(connectionId, Core::infinite, "RemoteHostExampleImpl", ~0);
+        _implementationLocal->SetName("Local");
+
+        connectionId = 0;
+        
         _implementation = service->Root<Exchange::IRemoteHostExample>(connectionId, Core::infinite, "RemoteHostExampleImpl", ~0, remoteTarget);
 
         if (remoteTarget.empty() == false) {
             string response;
             _implementation->Greet(name, response);
 
-            printf("## RESPONSE: %s\n", response.c_str());
+            printf("### RESPONSE: %s\n", response.c_str());
         } else {
             _implementation->SetName(name);
         }
+
+        _implementation->Release();
+        _implementationLocal->Release();
 
         return result;
     }
 
     void RemoteHostExample::Deinitialize(PluginHost::IShell* service) 
     {
+        printf("Remote host example deinitialize\n");
+
         if (_implementation != nullptr) {
             _implementation->Release();
             _implementation = nullptr;

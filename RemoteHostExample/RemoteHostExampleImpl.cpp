@@ -7,7 +7,7 @@ namespace Exchange {
     class RemoteLinker : public Exchange::IRemoteLinker {
     public:
 
-        RemoteLinker()
+        virtual ~RemoteLinker()
         {
             Disconnect();
         }
@@ -15,15 +15,24 @@ namespace Exchange {
         // TODO: Change name (sth like Instantiate, Link)
         uint32_t Connect(const string& remoteAddress, const uint32_t interface, const uint32_t exchangeId) override
         {
+            uint32_t result = Core::ERROR_GENERAL;
+
             auto remoteInvokeServer = Core::ProxyType<RPC::WorkerPoolIPCServer>::Create();
             _remoteServer = Core::ProxyType<RPC::CommunicatorClient>::Create(Core::NodeId(remoteAddress.c_str()), Core::ProxyType<Core::IIPCServer>(remoteInvokeServer));
 
-            remoteInvokeServer->Announcements(_remoteServer->Announcement());
+            if (remoteInvokeServer.IsValid()) {
+                remoteInvokeServer->Announcements(_remoteServer->Announcement());
 
-            // Now try to create direct connection!
-            _remoteServer->Open((RPC::CommunicationTimeOut != Core::infinite ? 2 * RPC::CommunicationTimeOut : RPC::CommunicationTimeOut), interface, this->QueryInterface(interface), exchangeId);
+                void* requestedInterface = QueryInterface(interface);
 
-            return Core::ERROR_NONE;
+                // Now try to create direct connection!
+                result = _remoteServer->Open((RPC::CommunicationTimeOut != Core::infinite ? 2 * RPC::CommunicationTimeOut : RPC::CommunicationTimeOut), interface, requestedInterface, exchangeId);
+
+                // QueryInterface added reference for ourselves, now we need to derefenece it
+                Release();
+            }
+            
+            return result;
         }
 
         uint32_t Disconnect() override 
@@ -51,7 +60,7 @@ namespace Exchange {
 
         virtual ~RemoteHostExampleImpl() 
         {
-            printf("### Remote Host Example Destructor called!\n");
+
         }
 
         uint32_t SetName(const string& name) override;
