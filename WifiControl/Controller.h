@@ -202,8 +202,8 @@ namespace WPASupplicant {
         private:
             void SetSSID(const string& ssid)
             {
-                static constexpr const TCHAR* HIDDEN_SSID = "\\x00";
-                _hidden = (ssid.compare(0, strlen(HIDDEN_SSID), HIDDEN_SSID) == 0);
+                static constexpr const TCHAR HIDDEN_SSID[] = "\\x00";
+                _hidden = (ssid.compare(0, sizeof(HIDDEN_SSID), HIDDEN_SSID) == 0);
                 if (_hidden == false) {
                     _ssid = ssid;
                 }
@@ -1466,7 +1466,7 @@ namespace WPASupplicant {
 
             return (result);
         }
-        inline uint32_t SetKey(const string& key, const string& value) 
+        inline uint32_t SetKey(const string& key, const string& value)
         {
             uint32_t result = Core::ERROR_NONE;
 
@@ -1481,7 +1481,7 @@ namespace WPASupplicant {
             if ((exchange.Wait(MaxConnectionTime) == false) || (exchange.Response() != _T("OK"))) {
 
                 result = Core::ERROR_ASYNC_ABORTED;
-            } 
+            }
 
             Revoke(&exchange);
 
@@ -1502,7 +1502,7 @@ namespace WPASupplicant {
             if ((exchange.Wait(MaxConnectionTime) == false) || (exchange.Response() != _T("OK"))) {
 
                 result = Core::ERROR_ASYNC_ABORTED;
-            } 
+            }
             else {
                 result = Core::ERROR_NONE;
                 value = exchange.Response();
