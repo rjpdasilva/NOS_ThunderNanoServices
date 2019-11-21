@@ -1,6 +1,7 @@
 #include "Module.h"
 #include "interfaces/IRemoteHostExample.h"
 #include "interfaces/IRemoteLinker.h"
+#include "RemoteHostExample.h"
 
 namespace WPEFramework {
 namespace Exchange {
@@ -63,7 +64,7 @@ namespace Exchange {
 
         }
 
-        uint32_t SetName(const string& name) override;
+        uint32_t Initialize(PluginHost::IShell* service) override;
         uint32_t Greet(const string& name, string& greeting) override;
 
         BEGIN_INTERFACE_MAP(RemoteHostExampleImpl)
@@ -75,11 +76,13 @@ namespace Exchange {
         string _name;
     };
 
-    uint32_t RemoteHostExampleImpl::SetName(const string& name) {
-        _name = name;
-
-        return Core::ERROR_NONE;
+    uint32_t RemoteHostExampleImpl::Initialize(PluginHost::IShell* service) {
+        Plugin::RemoteHostExample::Config config;
+        config.FromString(service->ConfigLine());
+        
+        _name = config.Name.Value();
     }
+
 
     uint32_t RemoteHostExampleImpl::Greet(const string& name, string& response) {
         response = "Hello " + name + ", my name is " + _name;

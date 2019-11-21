@@ -21,11 +21,13 @@ namespace Plugin {
         uint32_t connectionId;
 
         _implementationLocal = service->Root<Exchange::IRemoteHostExample>(connectionId, Core::infinite, "RemoteHostExampleImpl", ~0);
-        _implementationLocal->SetName("Local");
+        _implementationLocal->Initialize(service);
 
         connectionId = 0;
         
         _implementation = service->Root<Exchange::IRemoteHostExample>(connectionId, Core::infinite, "RemoteHostExampleImpl", ~0, remoteTarget);
+
+        service->RemoteConnection(2);
 
         if (remoteTarget.empty() == false) {
             string response;
@@ -33,7 +35,7 @@ namespace Plugin {
 
             printf("### RESPONSE: %s\n", response.c_str());
         } else {
-            _implementation->SetName(name);
+            _implementation->Initialize(service);
         }
 
         _implementation->Release();
