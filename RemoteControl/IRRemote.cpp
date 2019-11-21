@@ -67,6 +67,10 @@ namespace Plugin {
             _config.FromString(configure);
             _codeMask = _config.CodeMask.Value();
         }
+        virtual vodi Clear()
+        {
+            // Handle the clearing of object or values related to KeyProducer
+        }
 
         virtual bool Pair();
         virtual bool Unpair(string bindingId);

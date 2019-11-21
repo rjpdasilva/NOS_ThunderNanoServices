@@ -357,6 +357,7 @@ namespace Remotes {
                     if (_keyCallback != nullptr) {
                         (*index)->Callback(nullptr);
                     }
+                    (*index)->Clear();
                     index++;
                 }
                 _remotes.clear();
@@ -368,6 +369,7 @@ namespace Remotes {
                     if (_wheelCallback != nullptr) {
                         (*index)->Callback(nullptr);
                     }
+                    (*index)->Clear();
                     index++;
                 }
                 _wheels.clear();
@@ -379,6 +381,7 @@ namespace Remotes {
                     if (_pointerCallback != nullptr) {
                         (*index)->Callback(nullptr);
                     }
+                    (*index)->Clear();
                     index++;
                 }
                 _pointers.clear();
@@ -390,6 +393,7 @@ namespace Remotes {
                     if (_touchCallback != nullptr) {
                         (*index)->Callback(nullptr);
                     }
+                    (*index)->Clear();
                     index++;
                 }
                 _touchpanels.clear();

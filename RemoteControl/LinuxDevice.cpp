@@ -114,6 +114,11 @@ namespace Plugin {
                 }
                 return false;
             }
+            void Clear() override
+            {
+                _parent->Clear(this);
+            }
+
             BEGIN_INTERFACE_MAP(KeyDevice)
             INTERFACE_ENTRY(Exchange::IKeyProducer)
             END_INTERFACE_MAP
@@ -183,6 +188,10 @@ namespace Plugin {
                 }
                 return false;
             }
+            void Clear() override
+            {
+                _parent->Clear(this);
+            }
 
             BEGIN_INTERFACE_MAP(WheelDevice)
             INTERFACE_ENTRY(Exchange::IWheelProducer)
@@ -249,6 +258,10 @@ namespace Plugin {
                     }
                 }
                 return false;
+            }
+            void Clear() override
+            {
+                _parent->Clear(this);
             }
 
             BEGIN_INTERFACE_MAP(PointerDevice)
@@ -410,6 +423,10 @@ namespace Plugin {
                     }
                 }
                 return false;
+            }
+            void Clear() override
+            {
+                _parent->Clear(this);
             }
 
         private:
@@ -634,6 +651,16 @@ namespace Plugin {
             for (auto& device : _inputDevices) {
                 device->Teardown();
                 device->Setup();
+            }
+        }
+        void Clear(IDevInputDevice* inputDevice)
+        {
+            std::vector<IDevInputDevice*>::iterator index = find(_inputDevices.begin(), _inputDevices.end(), inputDevice);
+            if (index != _inputDevices.end()) {
+                _inputDevices.erase(index);
+            }
+            if (_inputDevices.empty() == true) {
+                Block();
             }
         }
         void Clear()
