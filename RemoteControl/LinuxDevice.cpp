@@ -492,6 +492,7 @@ namespace Plugin {
         LinuxDevice()
             : Core::Thread(Core::Thread::DefaultStackSize(), _T("LinuxInputSystem"))
             , _devices()
+            , _eventLock()
             , _monitor(nullptr)
             , _update(-1)
         {
@@ -564,7 +565,12 @@ namespace Plugin {
             // We are done, start observing again.
             Run();
 
-            return (_devices.size() != 0);
+            // Check devices are paired
+            _eventLock.Lock();
+            bool status = ((_devices.size() != 0) ? true : false);
+            _eventLock.Unlock();
+
+            return (status);
         }
         bool Unpair(string bindingId)
         {
@@ -576,7 +582,12 @@ namespace Plugin {
             // We are done, start observing again.
             Run();
 
-            return (_devices.size() == 0);
+            // Check devices are unpaired
+            _eventLock.Lock();
+            bool status = ((_devices.size() == 0) ? true : false);
+            _eventLock.Unlock();
+
+            return (status);
         }
 
     private:
@@ -593,6 +604,7 @@ namespace Plugin {
 
                     if (entry.Open(true) == true) {
                         int fd = entry.DuplicateHandle();
+                        _eventLock.Lock();
                         std::map<string, std::pair<int, IDevInputDevice*>>::iterator device(_devices.find(entry.Name()));
                         if (device == _devices.end()) {
                             string deviceName;
@@ -610,6 +622,7 @@ namespace Plugin {
 
                             _devices.insert(std::make_pair(entry.Name(), std::make_pair(fd, inputDevice)));
                         }
+                        _eventLock.Unlock();
                     }
                 }
             }
@@ -621,11 +634,13 @@ namespace Plugin {
         }
         void Clear()
         {
+            _eventLock.Lock();
             for (std::map<string, std::pair<int, IDevInputDevice*>>::const_iterator it = _devices.begin(), end = _devices.end();
                  it != end; ++it) {
                 close(it->second.first);
             }
             _devices.clear();
+            _eventLock.Unlock();
         }
         void Block()
         {
@@ -644,10 +659,12 @@ namespace Plugin {
                 int result = std::max(_pipe[0], _update);
 
                 // set up all the input devices
+                _eventLock.Lock();
                 for (std::map<string, std::pair<int, IDevInputDevice*>>::const_iterator index = _devices.begin(), end = _devices.end(); index != end; ++index) {
                     FD_SET(index->second.first, &readset);
                     result = std::max(result, index->second.first);
                 }
+                _eventLock.Unlock();
 
                 result = select(result + 1, &readset, 0, 0, nullptr);
 
@@ -671,6 +688,7 @@ namespace Plugin {
                     }
 
                     // find the devices to read from
+                    _eventLock.Lock();
                     std::map<string, std::pair<int, IDevInputDevice*>>::iterator index = _devices.begin();
 
                     while (index != _devices.end()) {
@@ -687,6 +705,7 @@ namespace Plugin {
                             ++index;
                         }
                     }
+                    _eventLock.Unlock();
                 }
             }
             return (Core::infinite);
@@ -742,6 +761,7 @@ namespace Plugin {
 
     private:
         std::map<string, std::pair<int, IDevInputDevice*>> _devices;
+        Core::CriticalSection _eventLock;
         int _pipe[2];
         udev_monitor* _monitor;
         int _update;
