@@ -32,7 +32,6 @@ namespace Plugin {
             virtual bool Setup() { return true; }
             virtual bool Teardown() { return true; }
             virtual bool HandleInput(uint16_t code, uint16_t type, int32_t value) = 0;
-            virtual void ProducerEvent(const Exchange::ProducerEvents event) { }
         };
 
         class KeyDevice : public Exchange::IKeyProducer, public IDevInputDevice {
@@ -115,16 +114,17 @@ namespace Plugin {
                 }
                 return false;
             }
-            void ProducerEvent(const Exchange::ProducerEvents event) override
+            BEGIN_INTERFACE_MAP(KeyDevice)
+            INTERFACE_ENTRY(Exchange::IKeyProducer)
+            END_INTERFACE_MAP
+
+        private:
+            inline void ProducerEvent(const Exchange::ProducerEvents event)
             {
                 if (_callback) {
                     _callback->ProducerEvent(Name(), event);
                 }
             }
-
-            BEGIN_INTERFACE_MAP(KeyDevice)
-            INTERFACE_ENTRY(Exchange::IKeyProducer)
-            END_INTERFACE_MAP
 
         private:
             LinuxDevice* _parent;
