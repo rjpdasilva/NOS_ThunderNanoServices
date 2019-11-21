@@ -328,6 +328,8 @@ namespace WPASupplicant {
                     uint32_t marker = data.ForwardFind('\n');
                     uint32_t markerEnd = data.ForwardFind('\n', marker + 1);
 
+                    _parent.Clear();
+
                     while (marker != markerEnd) {
 
                         Core::TextFragment element(data, marker + 1, (markerEnd - marker - 1));
@@ -384,7 +386,7 @@ namespace WPASupplicant {
 
         public:
             StatusRequest(Controller& parent)
-                : Request(string(_TXT("STATUS")))
+                : Request()
                 , _parent(parent)
                 , _signaled(false, true)
                 , _bssid(0)
@@ -437,6 +439,11 @@ namespace WPASupplicant {
                 _key = 0;
             }
 
+            bool Set()
+            {
+                return Request::Set(string(_TXT("STATUS")));
+            }
+
         private:
             virtual void Completed(const string& response, const bool abort) override
             {
@@ -479,9 +486,6 @@ namespace WPASupplicant {
                     _parent.Notify(static_cast<events>(_eventReporting));
                     _eventReporting = static_cast<uint32_t>(~0);
                 }
-
-                // Reload for the next run...
-                Set(string(_TXT("STATUS")));
 
                 _signaled.SetEvent();
             }
@@ -717,7 +721,7 @@ namespace WPASupplicant {
         typedef Core::StreamType<Core::SocketDatagram> BaseClass;
 
     protected:
-        Controller(const string& supplicantBase, const string& interfaceName, const uint16_t waitTime)
+        Controller(const string& supplicantBase, const string& interfaceName, const string& bssexpirationage, const uint16_t waitTime)
             : BaseClass(false, Core::NodeId(), Core::NodeId(), 512, 32768)
             , _adminLock()
             , _requests()
@@ -752,13 +756,11 @@ namespace WPASupplicant {
                     if ((exchange.Wait(MaxConnectionTime) == false) || (exchange.Response() != _T("OK"))) {
                         _error = Core::ERROR_COULD_NOT_SET_ADDRESS;
                     }
-                    else if (SetKey("bss_expiration_age", "180") != Core::ERROR_NONE) {
+                    else if (SetKey("bss_expiration_age", bssexpirationage.c_str()) != Core::ERROR_NONE) {
                         _error = Core::ERROR_GENERAL;
-                    }
-                    else if (SetKey("autoscan", "periodic:120") != Core::ERROR_NONE) {
-                        _error = Core::ERROR_GENERAL;
-                    }
-                    else {
+                    } else {
+                        const bool set = _statusRequest.Set();
+                        ASSERT(set == true || !"StatusRequest::Set failed yet the request has just been constructed. Is must be settable.");
                         Submit(&_statusRequest);
                     }
 
@@ -768,9 +770,9 @@ namespace WPASupplicant {
         }
 
     public:
-        static Core::ProxyType<Controller> Create(const string& supplicantBase, const string& interfaceName, const uint16_t waitTime)
+        static Core::ProxyType<Controller> Create(const string& supplicantBase, const string& interfaceName, const string& bssexpirationage, const uint16_t waitTime)
         {
-            return (Core::ProxyType<Controller>::Create(supplicantBase, interfaceName, waitTime));
+            return (Core::ProxyType<Controller>::Create(supplicantBase, interfaceName, bssexpirationage, waitTime));
         }
         virtual ~Controller()
         {
@@ -1594,6 +1596,9 @@ namespace WPASupplicant {
         }
         // These methods (add/add/update) are assumed to be running in a locked context.
         // Completion of requests are running in a locked context, so oke to update maps/lists
+        void Clear() {
+            _networks.clear();
+        };
         void Add(const uint64_t& bssid, const NetworkInfo& entry);
         void Add(const string& ssid, const bool current, const uint64_t& bssid);
         void Update(const string& status);
