@@ -38,7 +38,6 @@ namespace Plugin {
     uint32_t RemoteInvocation::Invocator::LinkByCallsign(const uint16_t port, const uint32_t interfaceId, const uint32_t exchangeId, const string& callsign) 
     {
         uint32_t result = Core::ERROR_NONE;
-        printf("## %s\n", _remoteId.c_str());
         string remoteAddress = Core::NodeId(_remoteId.c_str()).HostAddress() + ":" + std::to_string(port);
 
         auto plugin = reinterpret_cast<Core::IUnknown*>(_service->QueryInterfaceByCallsign(Exchange::IRemoteLinker::ID, callsign));

@@ -44,6 +44,8 @@ namespace Exchange {
             }
 
             ASSERT(_remoteServer.IsValid() == false);
+
+            return Core::ERROR_NONE;
         }
 
     private:
@@ -52,7 +54,7 @@ namespace Exchange {
 
 
     class RemoteHostExampleImpl : public RemoteLinker, IRemoteHostExample {
-    public:
+    public: 
         RemoteHostExampleImpl() 
             : _name()
         {
@@ -81,6 +83,18 @@ namespace Exchange {
         config.FromString(service->ConfigLine());
         
         _name = config.Name.Value();
+        service->DataPath();
+        service->DataPath();
+        service->DataPath();
+        service->DataPath();
+        service->DataPath();
+        service->DataPath();
+        service->DataPath();
+        service->DataPath();
+        service->DataPath();
+        
+
+        return Core::ERROR_NONE;
     }
 
 
