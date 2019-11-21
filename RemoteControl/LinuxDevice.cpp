@@ -572,7 +572,18 @@ namespace Plugin {
                 device->Teardown();
             }
 
-            _inputDevices.clear();
+            // Clear the list explicitly
+            std::vector<IDevInputDevice*>::iterator index(_inputDevices.begin());
+            while (index != _inputDevices.end()) {
+                delete *index;
+                index = _inputDevices.erase(index);
+            }
+            index = _revokedInputDevices.begin();
+            while (index != _revokedInputDevices.end()) {
+                delete *index;
+                index = _revokedInputDevices.erase(index);
+            }
+
         }
 
     public:
@@ -658,6 +669,8 @@ namespace Plugin {
             std::vector<IDevInputDevice*>::iterator index = find(_inputDevices.begin(), _inputDevices.end(), inputDevice);
             if (index != _inputDevices.end()) {
                 _inputDevices.erase(index);
+                // Keep in revoked list to clear later on
+                _revokedInputDevices.push_back(inputDevice);
             }
             if (_inputDevices.empty() == true) {
                 Block();
@@ -797,6 +810,7 @@ namespace Plugin {
         udev_monitor* _monitor;
         int _update;
         std::vector<IDevInputDevice*> _inputDevices;
+        std::vector<IDevInputDevice*> _revokedInputDevices;
         static LinuxDevice* _singleton;
     };
 
