@@ -174,55 +174,53 @@ namespace Plugin
         result->ErrorCode = Web::STATUS_BAD_REQUEST;
         result->Message = _T("Unsupported GET request.");
 
-        if (index.IsValid() == true) {
-            if (index.Next() && index.IsValid()) {
-                if (index.Current().Text() == _T("Networks")) {
+        if (index.Next() && index.IsValid()) {
+            if (index.Current().Text() == _T("Networks")) {
 
-                    Core::ProxyType<Web::JSONBodyType<WifiControl::NetworkList>> networks(jsonResponseFactoryNetworkList.Element());
-                    WPASupplicant::Network::Iterator list(_controller->Networks());
-                    networks->Set(list);
-
-                    result->ErrorCode = Web::STATUS_OK;
-                    result->Message = _T("Scanned networks.");
-                    result->Body(networks);
-
-                } else if (index.Current().Text() == _T("Configs")) {
-
-                    Core::ProxyType<Web::JSONBodyType<WifiControl::ConfigList>> configs(jsonResponseFactoryConfigList.Element());
-                    WPASupplicant::Config::Iterator list(_controller->Configs());
-                    configs->Set(list);
-
-                    result->ErrorCode = Web::STATUS_OK;
-                    result->Message = _T("Get configurations.");
-                    result->Body(configs);
-
-                } else if ((index.Current().Text() == _T("Config")) && (index.Next() == true)) {
-
-                    WPASupplicant::Config entry(_controller->Get(SSIDDecode(index.Current().Text())));
-                    if (entry.IsValid() != true) {
-                        result->ErrorCode = Web::STATUS_NO_CONTENT;
-                        result->Message = _T("Empty config.");
-                    } else {
-                        Core::ProxyType<Web::JSONBodyType<JsonData::WifiControl::ConfigInfo>> config(jsonResponseFactoryConfig.Element());
-
-                        WifiControl::FillConfig(entry, *config);
-
-                        result->ErrorCode = Web::STATUS_OK;
-                        result->Message = _T("Get configuration.");
-                        result->Body(config);
-                    }
-                }
-            } else {
-                Core::ProxyType<Web::JSONBodyType<StatusData>> status(jsonResponseFactoryStatus.Element());
+                Core::ProxyType<Web::JSONBodyType<WifiControl::NetworkList>> networks(jsonResponseFactoryNetworkList.Element());
+                WPASupplicant::Network::Iterator list(_controller->Networks());
+                networks->Set(list);
 
                 result->ErrorCode = Web::STATUS_OK;
-                result->Message = _T("Current status.");
+                result->Message = _T("Scanned networks.");
+                result->Body(networks);
 
-                status->Connected = _controller->Current();
-                status->Scanning = _controller->IsScanning();
+            } else if (index.Current().Text() == _T("Configs")) {
 
-                result->Body(status);
+                Core::ProxyType<Web::JSONBodyType<WifiControl::ConfigList>> configs(jsonResponseFactoryConfigList.Element());
+                WPASupplicant::Config::Iterator list(_controller->Configs());
+                configs->Set(list);
+
+                result->ErrorCode = Web::STATUS_OK;
+                result->Message = _T("Get configurations.");
+                result->Body(configs);
+
+            } else if ((index.Current().Text() == _T("Config")) && (index.Next() == true)) {
+
+                WPASupplicant::Config entry(_controller->Get(SSIDDecode(index.Current().Text())));
+                if (entry.IsValid() != true) {
+                    result->ErrorCode = Web::STATUS_NO_CONTENT;
+                    result->Message = _T("Empty config.");
+                } else {
+                    Core::ProxyType<Web::JSONBodyType<JsonData::WifiControl::ConfigInfo>> config(jsonResponseFactoryConfig.Element());
+
+                    WifiControl::FillConfig(entry, *config);
+
+                    result->ErrorCode = Web::STATUS_OK;
+                    result->Message = _T("Get configuration.");
+                    result->Body(config);
+                }
             }
+        } else {
+            Core::ProxyType<Web::JSONBodyType<StatusData>> status(jsonResponseFactoryStatus.Element());
+
+            result->ErrorCode = Web::STATUS_OK;
+            result->Message = _T("Current status.");
+
+            status->Connected = _controller->Current();
+            status->Scanning = _controller->IsScanning();
+
+            result->Body(status);
         }
 
         return result;
