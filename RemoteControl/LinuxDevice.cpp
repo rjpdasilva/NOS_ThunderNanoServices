@@ -564,7 +564,7 @@ namespace Plugin {
             // We are done, start observing again.
             Run();
 
-            return (true);
+            return (_devices.size() != 0);
         }
         bool Unpair(string bindingId)
         {
@@ -576,7 +576,7 @@ namespace Plugin {
             // We are done, start observing again.
             Run();
 
-            return (true);
+            return (_devices.size() == 0);
         }
 
     private:
