@@ -106,7 +106,7 @@ namespace Plugin {
             {
                 if (type == EV_KEY) {
                     if ((code < BTN_MISC) || (code >= KEY_OK)) {
-                        if (value != 2) {
+                        if ((_callback != nullptr) && (value != 2)) {
                             _callback->KeyEvent((value != 0), code, Name());
                         }
                         return true;
@@ -170,7 +170,7 @@ namespace Plugin {
             }
             bool HandleInput(uint16_t code, uint16_t type, int32_t value) override
             {
-                if (type == EV_REL) {
+                if ((_callback != nullptr) && (type == EV_REL)) {
                     switch(code)
                     {
                     case REL_WHEEL:
@@ -229,21 +229,23 @@ namespace Plugin {
             }
             bool HandleInput(uint16_t code, uint16_t type, int32_t value) override
             {
-                if (type == EV_REL) {
-                    switch(code)
-                    {
-                    case REL_X:
-                        _callback->PointerMotionEvent(value, 0);
-                        return true;
-                    case REL_Y:
-                        _callback->PointerMotionEvent(0, value);
-                        return true;
+                if (_callback != nullptr) {
+                    if (type == EV_REL) {
+                        switch(code)
+                        {
+                        case REL_X:
+                            _callback->PointerMotionEvent(value, 0);
+                            return true;
+                        case REL_Y:
+                            _callback->PointerMotionEvent(0, value);
+                            return true;
+                        }
                     }
-                }
-                else if (type == EV_KEY) {
-                    if ((code >= BTN_MOUSE) && (code <= BTN_TASK)) {
-                        _callback->PointerButtonEvent((value != 0), (code - BTN_MOUSE));
-                        return true;
+                    else if (type == EV_KEY) {
+                        if ((code >= BTN_MOUSE) && (code <= BTN_TASK)) {
+                            _callback->PointerButtonEvent((value != 0), (code - BTN_MOUSE));
+                            return true;
+                        }
                     }
                 }
                 return false;
@@ -399,7 +401,9 @@ namespace Plugin {
                         _have_abs = false;
                         for (size_t i = 1; i < _abs_latch.size(); i++) {
                             if (_abs_latch[i].Action() != AbsInfo::absaction::IDLE) {
-                                _callback->TouchEvent((i - 1), _abs_latch[i].State(), _abs_latch[i].X(), _abs_latch[i].Y());
+                                if (_callback != nullptr) {
+                                    _callback->TouchEvent((i - 1), _abs_latch[i].State(), _abs_latch[i].X(), _abs_latch[i].Y());
+                                }
                                 _abs_latch[i].Reset();
                             }
                         }
