@@ -28,6 +28,7 @@ namespace Plugin
         , _sink(*this)
         , _wpaSupplicant()
         , _controller()
+        , _scanTimer(Core::Thread::DefaultStackSize(), _T("ScanTimer"))
     {
         RegisterAll();
     }
@@ -72,6 +73,8 @@ namespace Plugin
                 } else {
                     _controller->Callback(&_sink);
                     _controller->Scan();
+                    _scanInterval = config.ScanInterval.Value() * 1000;
+                    ScheduleScan();
 
                     Core::File configFile(_configurationStore);
 
@@ -108,8 +111,8 @@ namespace Plugin
         _controller->Callback(nullptr);
 
         if( _wpaSupplicant.WasStarted() == true ) {
-            _controller->Terminate(); 
-            _wpaSupplicant.Terminate(); 
+            _controller->Terminate();
+            _wpaSupplicant.Terminate();
         }
 
         _controller.Release();
@@ -395,6 +398,28 @@ namespace Plugin
         case WPASupplicant::Controller::WPS_AP_AVAILABLE:
         case WPASupplicant::Controller::AP_ENABLED:
             break;
+        }
+    }
+
+    uint64_t WifiControl::Timed(const uint64_t scheduledTime)
+    {
+        if (!_controller->IsScanning()) {
+            uint32_t rc = _controller->Scan();
+            TRACE(Trace::Information, ("%s: Scan returned %d", __FUNCTION__, rc));
+        }
+        ScheduleScan();
+        return 0;
+    }
+
+    void WifiControl::ScheduleScan()
+    {
+        if (_scanTimer.Pending()) {
+            TRACE(Trace::Information, ("%s: Ignoring, timer is pending (%d)\n", __FUNCTION__, _scanTimer.Pending()));
+        } else {
+            TRACE(Trace::Information,("%s: Scheudlingi next scan in %llu ms\n", __FUNCTION__, _scanInterval));
+            Core::Time NextTick = Core::Time::Now();
+            NextTick.Add(_scanInterval);
+            _scanTimer.Schedule(NextTick.Ticks(), ScanTimer(*this));
         }
     }
 
