@@ -3,11 +3,12 @@
 #include "Module.h"
 #include "interfaces/IRemoteHostExample.h"
 #include "interfaces/IRemoteLinker.h"
+#include <interfaces/json/JsonData_RemoteHostExample.h>
 
 namespace WPEFramework {
 namespace Plugin {
 
-    class RemoteHostExample : public PluginHost::IPlugin {
+    class RemoteHostExample : public PluginHost::IPlugin, public PluginHost::JSONRPC {
     public:
         class Config : public Core::JSON::Container {
         private:
@@ -38,16 +39,19 @@ namespace Plugin {
 
         RemoteHostExample()
         {
+            RegisterAll();
         }
 
         virtual ~RemoteHostExample()
         {
+            UnregisterAll();
         }
 
         BEGIN_INTERFACE_MAP(RemoteHostExample)
-            INTERFACE_AGGREGATE(Exchange::IRemoteHostExample, _implementationLocal)
-            INTERFACE_AGGREGATE(Exchange::IRemoteLinker, _implementationLocal)
+            INTERFACE_AGGREGATE(Exchange::IRemoteHostExample, _implementation)
+            INTERFACE_AGGREGATE(Exchange::IRemoteLinker, _implementation)
             INTERFACE_ENTRY(PluginHost::IPlugin)
+            INTERFACE_ENTRY(PluginHost::JSONRPC);
         END_INTERFACE_MAP
 
     public:
@@ -57,9 +61,16 @@ namespace Plugin {
         virtual void Deinitialize(PluginHost::IShell* service) override;
         virtual string Information() const override;
 
+    
+    private:
+        //   JSONRPC methods
+        // -------------------------------------------------------------------------------------------------------
+        void RegisterAll();
+        void UnregisterAll();
+        uint32_t endpoint_greet(const JsonData::RemoteHostExample::GreetParamsData& params, JsonData::RemoteHostExample::GreetResultData& response);
+
     private:
         Exchange::IRemoteHostExample* _implementation;
-        Exchange::IRemoteHostExample* _implementationLocal;
     };
 
 } // namespace Plugin

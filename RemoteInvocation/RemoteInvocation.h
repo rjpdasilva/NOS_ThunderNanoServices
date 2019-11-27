@@ -68,10 +68,6 @@ namespace Plugin {
             // --------------------------------------------------------------------------------------------------------
             uint32_t LinkByCallsign(const uint16_t port, const uint32_t interfaceId, const uint32_t exchangeId, const string& callsign);
             uint32_t Unlink(const uint32_t exchangeId) override;
-            
-            uint32_t Instantiate(const uint16_t port, const Exchange::IRemoteInvocation::ProgramParams& params) override;
-            uint32_t Terminate(uint32_t connectionId) override;
-
         private:
             string _remoteId;
             PluginHost::IShell* _service;

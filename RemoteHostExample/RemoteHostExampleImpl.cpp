@@ -83,23 +83,18 @@ namespace Exchange {
         config.FromString(service->ConfigLine());
         
         _name = config.Name.Value();
-        service->DataPath();
-        service->DataPath();
-        service->DataPath();
-        service->DataPath();
-        service->DataPath();
-        service->DataPath();
-        service->DataPath();
-        service->DataPath();
-        service->DataPath();
-        
 
         return Core::ERROR_NONE;
     }
 
 
-    uint32_t RemoteHostExampleImpl::Greet(const string& name, string& response) {
-        response = "Hello " + name + ", my name is " + _name;
+    uint32_t RemoteHostExampleImpl::Greet(const string& message, string& response) {
+
+        printf("#######################################\n");
+        printf("%s\n", message.c_str());
+        printf("#######################################\n");
+        
+        response += "Hello from the other side, my name is " + _name;
 
         return Core::ERROR_NONE;
     }

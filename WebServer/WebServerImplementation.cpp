@@ -663,16 +663,12 @@ namespace Plugin {
             Config config;
             config.FromString(service->ConfigLine());
 
-            printf("### DATAPATH: %s\n", service->DataPath().c_str());
-
             uint32_t result(_channelServer.Configure(service->DataPath(), config));
 
             if (result == Core::ERROR_NONE) {
 
                 result = _channelServer.Open(2000);
 			}
-
-            printf("## CONFIGURE END!\n");
 
             return (result);
         }

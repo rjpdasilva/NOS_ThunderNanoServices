@@ -8,40 +8,28 @@ namespace Plugin {
 
     const string RemoteHostExample::Initialize(PluginHost::IShell* service) 
     {
-        string result;
+        string errorMessage = "";
 
         Config config;
         config.FromString(service->ConfigLine());
 
         string name = config.Name.Value();
+        uint32_t connectionId = 0;   
 
-        // If SlaveAddress will not be set, plugin will be started localy
-        // otherwise, plugin started on slave machine will be used
+        // If remoteTarget is set to empty string, plugin will be initialized on a local machine.
+        // If remoteTarget will be IP addres, implementaiton will be a proxy to real plugin on remote
+        // machine
         string remoteTarget = config.SlaveAddress.Value();
-        uint32_t connectionId;
-
-        _implementationLocal = service->Root<Exchange::IRemoteHostExample>(connectionId, Core::infinite, "RemoteHostExampleImpl", ~0);
-        _implementationLocal->Initialize(service);
-
-        connectionId = 0;
-        
         _implementation = service->Root<Exchange::IRemoteHostExample>(connectionId, Core::infinite, "RemoteHostExampleImpl", ~0, remoteTarget);
 
-        service->RemoteConnection(2);
-
-        if (remoteTarget.empty() == false) {
-            string response;
-            _implementation->Greet(name, response);
-
-            printf("### RESPONSE: %s\n", response.c_str());
-        } else {
-            _implementation->Initialize(service);
+        if (_implementation != nullptr) {
+            if (remoteTarget.empty() == true) {
+                // code run only on plugin host
+                _implementation->Initialize(service);
+            } 
         }
 
-        _implementation->Release();
-        _implementationLocal->Release();
-
-        return result;
+        return errorMessage;
     }
 
     void RemoteHostExample::Deinitialize(PluginHost::IShell* service) 

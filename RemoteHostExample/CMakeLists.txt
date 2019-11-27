@@ -8,6 +8,7 @@ find_package(CompileSettingsDebug CONFIG REQUIRED)
 add_library(${MODULE_NAME} SHARED
     RemoteHostExample.cpp
     RemoteHostExampleImpl.cpp
+    RemoteHostExampleJsonRpc.cpp
     Module.cpp)
 
 set_target_properties(${MODULE_NAME} PROPERTIES
