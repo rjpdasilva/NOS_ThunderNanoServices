@@ -27,6 +27,8 @@ namespace Plugin {
                 // code run only on plugin host
                 _implementation->Initialize(service);
             } 
+        } else {
+            errorMessage = "Failed to initialize RemoteHostExample implementaiton";
         }
 
         return errorMessage;

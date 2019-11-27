@@ -1,6 +1,6 @@
 #include "RemoteInvocation.h"
 #include "plugins/IShell.h"
-#include "interfaces/IRemoteLinker.h"
+#include "protocols/IRemoteLinker.h"
 
 namespace WPEFramework {
 namespace Plugin {
@@ -40,13 +40,13 @@ namespace Plugin {
         uint32_t result = Core::ERROR_NONE;
         string remoteAddress = Core::NodeId(_remoteId.c_str()).HostAddress() + ":" + std::to_string(port);
 
-        auto plugin = reinterpret_cast<Core::IUnknown*>(_service->QueryInterfaceByCallsign(Exchange::IRemoteLinker::ID, callsign));
+        auto plugin = reinterpret_cast<Core::IUnknown*>(_service->QueryInterfaceByCallsign(RPC::IRemoteLinker::ID, callsign));
 
         if (plugin != nullptr) {
-            auto linker = plugin->QueryInterface<Exchange::IRemoteLinker>();
+            auto linker = plugin->QueryInterface<RPC::IRemoteLinker>();
 
             if (linker != nullptr) {
-                result = linker->Connect(remoteAddress, interfaceId, exchangeId);
+                result = linker->Link(remoteAddress, interfaceId, exchangeId);
                 linker->Release();
 
                 connectionMap.insert(std::pair<uint32_t, Core::IUnknown*>(exchangeId, plugin));
@@ -69,10 +69,10 @@ namespace Plugin {
         auto plugin = connectionMap.find(exchangeId);
 
         if (plugin != connectionMap.end()) {
-            auto linker = plugin->second->QueryInterface<Exchange::IRemoteLinker>();
+            auto linker = plugin->second->QueryInterface<RPC::IRemoteLinker>();
 
             if (linker != nullptr) {
-                result = linker->Disconnect();
+                result = linker->Unlink();
 
                 if (result == Core::ERROR_NONE) {
                     plugin->second->Release();

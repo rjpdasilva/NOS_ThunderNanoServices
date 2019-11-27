@@ -2,7 +2,6 @@
 
 #include "Module.h"
 #include "interfaces/IRemoteHostExample.h"
-#include "interfaces/IRemoteLinker.h"
 #include <interfaces/json/JsonData_RemoteHostExample.h>
 
 namespace WPEFramework {
@@ -49,7 +48,7 @@ namespace Plugin {
 
         BEGIN_INTERFACE_MAP(RemoteHostExample)
             INTERFACE_AGGREGATE(Exchange::IRemoteHostExample, _implementation)
-            INTERFACE_AGGREGATE(Exchange::IRemoteLinker, _implementation)
+            INTERFACE_AGGREGATE(RPC::IRemoteLinker, _implementation)
             INTERFACE_ENTRY(PluginHost::IPlugin)
             INTERFACE_ENTRY(PluginHost::JSONRPC);
         END_INTERFACE_MAP
