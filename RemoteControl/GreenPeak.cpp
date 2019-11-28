@@ -305,10 +305,6 @@ namespace Plugin {
             ::strncpy(_userString, config.RemoteId.Value().c_str(), sizeof(_userString));
             _worker.Run();
         }
-        virtual void Clear() override
-        {
-            // Handle the clearing of object or values related to KeyProducer
-        }
         BEGIN_INTERFACE_MAP(GreenPeak)
         INTERFACE_ENTRY(Exchange::IKeyProducer)
         END_INTERFACE_MAP

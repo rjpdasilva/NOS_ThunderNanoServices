@@ -48,7 +48,7 @@ namespace Plugin {
             }
             virtual ~KeyDevice()
             {
-                Remotes::RemoteAdministrator::Instance().Revoke(*this);
+                _parent->Clear(this);
             }
             const TCHAR* Name() const override
             {
@@ -114,10 +114,6 @@ namespace Plugin {
                 }
                 return false;
             }
-            void Clear() override
-            {
-                _parent->Clear(this);
-            }
 
             BEGIN_INTERFACE_MAP(KeyDevice)
             INTERFACE_ENTRY(Exchange::IKeyProducer)
@@ -149,7 +145,7 @@ namespace Plugin {
             }
             virtual ~WheelDevice()
             {
-                //Remotes::RemoteAdministrator::Instance().Revoke(*this);
+                _parent->Clear(this);
             }
             const TCHAR* Name() const override
             {
@@ -188,10 +184,6 @@ namespace Plugin {
                 }
                 return false;
             }
-            void Clear() override
-            {
-                _parent->Clear(this);
-            }
 
             BEGIN_INTERFACE_MAP(WheelDevice)
             INTERFACE_ENTRY(Exchange::IWheelProducer)
@@ -213,7 +205,10 @@ namespace Plugin {
             {
                 Remotes::RemoteAdministrator::Instance().Announce(*this);
             }
-
+            virtual ~PointerDevice()
+            {
+                _parent->Clear(this);
+            }
             const TCHAR* Name() const override
             {
                 return (_T("DevPointerInput"));
@@ -259,10 +254,6 @@ namespace Plugin {
                 }
                 return false;
             }
-            void Clear() override
-            {
-                _parent->Clear(this);
-            }
 
             BEGIN_INTERFACE_MAP(PointerDevice)
             INTERFACE_ENTRY(Exchange::IPointerProducer)
@@ -292,6 +283,10 @@ namespace Plugin {
             {
                 _abs_latch.fill(AbsInfo());
                 Remotes::RemoteAdministrator::Instance().Announce(*this);
+            }
+            virtual ~TouchDevice()
+            {
+                _parent->Clear(this);
             }
             const TCHAR* Name() const override
             {
@@ -423,10 +418,6 @@ namespace Plugin {
                     }
                 }
                 return false;
-            }
-            void Clear() override
-            {
-                _parent->Clear(this);
             }
 
         private:
@@ -572,17 +563,7 @@ namespace Plugin {
                 device->Teardown();
             }
 
-            // Clear the list explicitly
-            std::vector<IDevInputDevice*>::iterator index(_inputDevices.begin());
-            while (index != _inputDevices.end()) {
-                delete *index;
-                index = _inputDevices.erase(index);
-            }
-            index = _revokedInputDevices.begin();
-            while (index != _revokedInputDevices.end()) {
-                delete *index;
-                index = _revokedInputDevices.erase(index);
-            }
+            _inputDevices.clear();
 
         }
 
@@ -666,15 +647,13 @@ namespace Plugin {
         }
         void Clear(IDevInputDevice* inputDevice)
         {
-            std::vector<IDevInputDevice*>::iterator index = find(_inputDevices.begin(), _inputDevices.end(), inputDevice);
-            if (index != _inputDevices.end()) {
-                _inputDevices.erase(index);
-                // Keep in revoked list to clear later on
-                _revokedInputDevices.push_back(inputDevice);
-            }
-            if (_inputDevices.empty() == true) {
-                Block();
-            }
+             std::vector<IDevInputDevice*>::iterator index = find(_inputDevices.begin(), _inputDevices.end(), inputDevice);
+             if (index != _inputDevices.end()) {
+                 _inputDevices.erase(index);
+             }
+             if (_inputDevices.empty() == true) {
+                 Block();
+             }
         }
         void Clear()
         {
@@ -810,7 +789,6 @@ namespace Plugin {
         udev_monitor* _monitor;
         int _update;
         std::vector<IDevInputDevice*> _inputDevices;
-        std::vector<IDevInputDevice*> _revokedInputDevices;
         static LinuxDevice* _singleton;
     };
 
