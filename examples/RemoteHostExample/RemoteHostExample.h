@@ -7,7 +7,7 @@
 namespace WPEFramework {
 namespace Plugin {
 
-    class RemoteHostExample : public PluginHost::IPlugin, public PluginHost::JSONRPC {
+    class RemoteHostExample : public PluginHost::IPlugin, public PluginHost::JSONRPC, public Exchange::IRemoteHostExample::ITimeListener {
     public:
         class Config : public Core::JSON::Container {
         private:
@@ -47,10 +47,11 @@ namespace Plugin {
         }
 
         BEGIN_INTERFACE_MAP(RemoteHostExample)
+            INTERFACE_ENTRY(PluginHost::IPlugin)
+            INTERFACE_ENTRY(Exchange::IRemoteHostExample::ITimeListener)
+            INTERFACE_ENTRY(PluginHost::JSONRPC)
             INTERFACE_AGGREGATE(Exchange::IRemoteHostExample, _implementation)
             INTERFACE_AGGREGATE(RPC::IRemoteLinker, _implementation)
-            INTERFACE_ENTRY(PluginHost::IPlugin)
-            INTERFACE_ENTRY(PluginHost::JSONRPC);
         END_INTERFACE_MAP
 
     public:
@@ -60,7 +61,9 @@ namespace Plugin {
         virtual void Deinitialize(PluginHost::IShell* service) override;
         virtual string Information() const override;
 
-    
+        //   IRemoteHostExample::ITimeListener methods
+        // -------------------------------------------------------------------------------------------------------
+        uint32_t TimeUpdate(string time) override;
     private:
         //   JSONRPC methods
         // -------------------------------------------------------------------------------------------------------

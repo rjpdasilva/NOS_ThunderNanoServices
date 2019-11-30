@@ -23,10 +23,17 @@ namespace Plugin {
         _implementation = service->Root<Exchange::IRemoteHostExample>(connectionId, Core::infinite, "RemoteHostExampleImpl", ~0, remoteTarget);
 
         if (_implementation != nullptr) {
-            if (remoteTarget.empty() == true) {
+
+            if (remoteTarget.empty() == false) {
                 // code run only on plugin host
                 _implementation->Initialize(service);
-            } 
+            } else {
+                // code run only on proxy side
+                if (_remoteImplementation->SubscribeTimeUpdates(this) != Core::ERROR_NONE) {
+                    errorMessage = "Failed to subscribe updates";
+                }
+            }
+            
         } else {
             errorMessage = "Failed to initialize RemoteHostExample implementaiton";
         }
@@ -36,8 +43,6 @@ namespace Plugin {
 
     void RemoteHostExample::Deinitialize(PluginHost::IShell* service) 
     {
-        printf("Remote host example deinitialize\n");
-
         if (_implementation != nullptr) {
             _implementation->Release();
             _implementation = nullptr;
@@ -47,6 +52,13 @@ namespace Plugin {
     string RemoteHostExample::Information() const 
     {
         return (string());
+    }
+
+    uint32_t RemoteHostExample::TimeUpdate(string time) 
+    {
+        TRACE_L1("#### Current time is: %s\n ####", time.c_str());
+
+        return Core::ERROR_NONE;
     }
 }
 }
