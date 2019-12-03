@@ -17,10 +17,8 @@ namespace Plugin {
         public:
             Config()
                 : Core::JSON::Container()
-                , SlaveAddress()
                 , Name()
             {
-                Add(_T("slaveAddress"), &SlaveAddress);
                 Add(_T("name"), &Name);
             }
 
@@ -29,7 +27,6 @@ namespace Plugin {
             }
 
         public:
-            Core::JSON::String SlaveAddress;
             Core::JSON::String Name;
         };
 
@@ -37,12 +34,18 @@ namespace Plugin {
         RemoteHostExample& operator=(const RemoteHostExample&) = delete;
 
         RemoteHostExample()
+            : _shell(nullptr)
         {
             RegisterAll();
         }
 
         virtual ~RemoteHostExample()
         {
+            if (_shell) {
+                _shell->Release();
+                _shell = nullptr;
+            }
+
             UnregisterAll();
         }
 
@@ -73,6 +76,7 @@ namespace Plugin {
 
     private:
         Exchange::IRemoteHostExample* _implementation;
+        PluginHost::IShell* _shell;
     };
 
 } // namespace Plugin

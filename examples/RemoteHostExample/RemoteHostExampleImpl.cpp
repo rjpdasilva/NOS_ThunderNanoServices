@@ -18,8 +18,11 @@ namespace Exchange {
             void Dispatch() override 
             {
                 _parent->_adminLock.Lock();
-                for (auto subscriber : _parent->_subscribers) {
-                    subscriber->TimeUpdate(Core::Time::Now().ToISO8601());
+                for (auto subscriber = _parent->_subscribers.begin();  subscriber != _parent->_subscribers.end(); subscriber++) {
+                    if ((*subscriber)->TimeUpdate(Core::Time::Now().ToISO8601()) != Core::ERROR_NONE) {
+                        (*subscriber)->Release();
+                        subscriber = _parent->_subscribers.erase(subscriber);
+                    }
                 }
                 _parent->_adminLock.Unlock();
 
@@ -86,8 +89,6 @@ namespace Exchange {
 
     uint32_t RemoteHostExampleImpl::SubscribeTimeUpdates(IRemoteHostExample::ITimeListener* listener) 
     {
-        printf("# SUB\n");
-
         _adminLock.Lock();
         listener->AddRef();
         _subscribers.push_back(listener);
@@ -98,8 +99,6 @@ namespace Exchange {
 
     uint32_t RemoteHostExampleImpl::UnsubscribeTimeUpdates(IRemoteHostExample::ITimeListener* listener) 
     {
-        printf("# UNSUB\n");
-
         _adminLock.Lock();
         listener->Release();
         _subscribers.remove(listener);

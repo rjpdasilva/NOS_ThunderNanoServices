@@ -10,26 +10,26 @@ namespace Plugin {
     {
         string errorMessage = "";
 
+        service->AddRef();
+        _shell = service;
+
         Config config;
         config.FromString(service->ConfigLine());
 
         string name = config.Name.Value();
         uint32_t connectionId = 0;   
 
-        // If remoteTarget is set to empty string, plugin will be initialized on a local machine.
-        // If remoteTarget will be IP addres, implementaiton will be a proxy to real plugin on remote
-        // machine
-        string remoteTarget = config.SlaveAddress.Value();
-        _implementation = service->Root<Exchange::IRemoteHostExample>(connectionId, Core::infinite, "RemoteHostExampleImpl", ~0, remoteTarget);
+        _implementation = service->Root<Exchange::IRemoteHostExample>(connectionId, Core::infinite, "RemoteHostExampleImpl", ~0);
 
         if (_implementation != nullptr) {
 
-            if (remoteTarget.empty() == false) {
+            if (service->RemoteConnection(connectionId)->ConnectionType() == RPC::IRemoteConnection::Type::Local) {
                 // code run only on plugin host
                 _implementation->Initialize(service);
             } else {
+                printf("Local code!");
                 // code run only on proxy side
-                if (_remoteImplementation->SubscribeTimeUpdates(this) != Core::ERROR_NONE) {
+                if (_implementation->SubscribeTimeUpdates(this) != Core::ERROR_NONE) {
                     errorMessage = "Failed to subscribe updates";
                 }
             }

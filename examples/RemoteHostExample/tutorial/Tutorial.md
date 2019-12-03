@@ -5,8 +5,8 @@ Remote host invocation can be used to access an out-of-process nanoservice from 
 ## High level overview
 ![Remote invocation diagram](remote_invocation_diagram.png?raw=true "Remote invocation diagram")
 
-## Step by step
-First thing you need to do is to enable and start RemoteInvocation plugin on the device, on which the plugin will run. You should also specify address on which the plugin will be listening for proxy requests. YOu do that by configuring "address" in RemoteInvocation configuration. Eg. to listen for all incoming requests on port 5797 you could use following configuration:
+## Host device
+First thing you need to do is to enable and start RemoteInvocation plugin on the device, on which the plugin will run. You should also specify address on which the plugin will be listening for proxy requests. You do that by configuring "address" in RemoteInvocation configuration. Eg. to listen for all incoming requests on port 5797 you could use following configuration:
 ```json
 {
  "locator":"libWPEFrameworkRemoteInvocation.so",
@@ -18,10 +18,9 @@ First thing you need to do is to enable and start RemoteInvocation plugin on the
 }
 ```
 
-From code side of view, the only thing you need to do, to allow access to plugin from remote device, is to implement IRemoteLinker interface in your plugin. The easiest way to do it is to just inherit from RPC::RemoteLinker
+From code side of view, the only thing you need to do, to allow access to plugin from remote device, is to implement IRemoteLinker interface in your plugin. The easiest way to do it is to just inherit from default implementation - RPC::RemoteLinker
 
 ```cpp
-
 class RemoteHostExampleImpl : public RPC::RemoteLinker, IRemoteHostExample {
 public:
 
@@ -33,16 +32,49 @@ public:
         INTERFACE_ENTRY(RPC::IRemoteLinker)
     END_INTERFACE_MAP
 };
-
 ```
 
-Thats it! From now on, the plugin can be accessed just like starting a local plugin, by calling a root function with provided ip address of machine, where te plugin is really running
+Thats it! Now start a plugin just as you would for a typical out-of-process
 
 ```cpp
-_implementation = service->Root<Exchange::IRemoteHostExample>(connectionId, timeout, "RemoteHostExampleImpl", ~0, "10.5.0.123:5787");
+_implementation = service->Root<Exchange::IRemoteHostExample>(connectionId, timeout, "RemoteHostExampleImpl", ~0);
+```
+with example config of
+```json
+{
+ "locator":"libWPEFrameworkRemoteHostExample.so",
+ "classname":"RemoteHostExample",
+ "autostart":false,
+ "configuration":{
+  "name":"Local",
+  "root":{
+   "mode":"local"
+  }
+ }
+}
 ```
 
-Now you can use _implementaiton just like it was local out-of-process plugin.
+## Proxy device
+On device that will use proxy, root call looks exactly the same:
+```cpp
+_implementation = service->Root<Exchange::IRemoteHostExample>(connectionId, timeout, "RemoteHostExampleImpl", ~0);
+```
+the only difference is in config. It will look like this:
+```json
+{
+ "locator":"libWPEFrameworkRemoteHostExample.so",
+ "classname":"RemoteHostExample",
+ "autostart":false,
+ "configuration":{
+  "name":"Remote",
+  "root":{
+   "mode":"distributed",
+   "remoteaddress":"10.5.0.112:5797"
+  }
+ }
+}
+```
+One thing to remember is the fact that this root only creates a proxy. Plugin have to be already running on target device!
 
 ## Best practices
 
@@ -50,21 +82,21 @@ Although its not strictly required, all functions that will be called from remot
 
 Eg. by having
 ```cpp
-        virtual uint32_t Greet(const string& message, string& response /* @out */) = 0;
+virtual uint32_t Greet(const string& message, string& response /* @out */) = 0;
 ```
 
 We could check that everyting is correct by following:
 ```cpp
-    string response;
-    uint32_t result = _implementation->Greet("Hello", response);
+string response;
+uint32_t result = _implementation->Greet("Hello", response);
 
-    if (result == Core::ERROR_TIMEDOUT) {
-        TRACE_L1("Call to _implementation->Greet(...) failed. Conneciton timed out");
-    } else if (result == Core::ERROR_CONNECTION_CLOSED) {
-        TRACE_L1("Call to _implementation->Greet(...) failed. Connection to remote device was closed");
-    } else if (result != Core::ERROR_NONE) {
-        TRACE_L1("Call to _implementation->Greet(...) failed. Unknown error");
-    }
+if (result == Core::ERROR_TIMEDOUT) {
+    TRACE_L1("Call to _implementation->Greet(...) failed. Conneciton timed out");
+} else if (result == Core::ERROR_CONNECTION_CLOSED) {
+    TRACE_L1("Call to _implementation->Greet(...) failed. Connection to remote device was closed");
+} else if (result != Core::ERROR_NONE) {
+    TRACE_L1("Call to _implementation->Greet(...) failed. Unknown error");
+}
 ```
 
 ## Communicating between 32 bit & 64bit devices
